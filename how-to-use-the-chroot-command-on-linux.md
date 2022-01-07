@@ -1,7 +1,7 @@
 # How to Use the chroot Command on Linux
 
 
-使用 `chroot` ，可以在避免跟常规文件系统交互的前提下，设置并运行你的程序或者交互式 `shell`（sh, bash, zsh ...）.
+使用 `chroot` ，可以在避免跟常规文件系统交互的前提下，设置并运行你的程序或者交互式 shell（sh, bash, zsh ...）
 
 `chroot` 环境中在没有升级到 `root` 权限时不能看到自己特殊的根目录。
 
@@ -37,7 +37,7 @@ mkdir -p $chr
 
 我们将配置并启动一个可以使用 `bash`， 同时包含 `touch`, `rm`, `ls` 命令的最小化 `linux` 环境。
 
-以使我们可以使用 bash 所有内置的命令以及额外的 `touch`， `rm`， `ls` 命令来创建，移除，列表文件。
+以使我们可以使用这些命令来创建，移除，列表文件。
 
 
 
@@ -67,7 +67,7 @@ cp -v --parents /bin/{bash,touch,ls,rm} $chr
 ```
 
 
-不过，这些二进制文本拥有自己的依赖项。
+不过，这些二进制文件拥有自己的依赖项。
 
 我们需要找出依赖并将它们同时复制到我们的最小化 linux 环境中，否则 `bash`, `touch`, `rm`, 与 `ls` 命令都将不能工作。
 
@@ -196,7 +196,7 @@ linuxea@linuxea-PC:~/testroot$ for i in $list; do cp -v --parent $i $chr; done
 
 伴随着最后一个命令的依赖项复制到 `chroot` 环境的完成。
 
-我们终于准备好使用 `chroot` 的准备工作。
+我们终于准备好使用 `chroot` 的工作。
 
 此命令设置 `chroot` 环境的根目录，并指定作为 shell 运行的应用程序：
 
