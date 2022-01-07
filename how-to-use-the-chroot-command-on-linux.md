@@ -1,9 +1,9 @@
 # How to Use the chroot Command on Linux
 
 
-使用 `chroot` ，可以在避免跟常规文件系统交互的前提下，设置并运行你的程序或者交互式 shell（sh, bash, zsh ...）.
+使用 `chroot` ，可以在避免跟常规文件系统交互的前提下，设置并运行你的程序或者交互式 `shell`（sh, bash, zsh ...）.
 
-`chroot` 环境中在没有升级到 root 权限时不能看到自己特殊的根目录。
+`chroot` 环境中在没有升级到 `root` 权限时不能看到自己特殊的根目录。
 
 这种环境被命名为 `chroot jail`.
 
@@ -13,7 +13,7 @@
 ## Creating a chroot Environment
 
 
-我们需要一个目录来扮演 chroot 环境中的根目录的角色。
+我们需要一个目录来扮演 `chroot` 环境中的根目录的角色。
 
 这里创建一个变量用来存储该目录地址，这样我们可以以一种简短的方式来表示对其引用。
 
@@ -35,7 +35,7 @@ mkdir -p $chr
 
 我们需要创建目录来保存我们的 `chroot` 环境对操作系统所需要的部分。
 
-我们将配置并启动一个可以使用 `bash`， 同时包含 `touch`, `rm`, `ls` 命令的最小化 linux 环境。
+我们将配置并启动一个可以使用 `bash`， 同时包含 `touch`, `rm`, `ls` 命令的最小化 `linux` 环境。
 
 以使我们可以使用 bash 所有内置的命令以及额外的 `touch`， `rm`， `ls` 命令来创建，移除，列表文件。
 
@@ -48,8 +48,9 @@ cd $chr
 ```
 
 我们将在最小 linux 环境下需要的二进制文件从常规文件系统的 `/bin` 目录复制到我们的 chroot 的 `/bin` 目录。
-`-v` 选项可以将 `cp` 命令执行明细打印出来
-`--parents` 选项标记在目录下使用完整的文件名
+
+- `-v` 选项可以将 `cp` 命令执行明细打印出来
+- `--parents` 选项标记在目录下使用完整的文件名
 
 
 ```bash
@@ -74,6 +75,17 @@ cp -v --parents /bin/{bash,touch,ls,rm} $chr
 
 先从 `bash` 开始吧
 
+使用 `file` 命令进行检查：
+```bash
+file /bin/bash
+```
+输出结果如下：
+```
+/bin/bash: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=1e4b04c843e5befd5ad847201530a5d3d9fc5fba, stripped
+```
+
+可以看到 `bash` 是一个动态链接程序。
+
 `ldd` 会为我们列出二进制文件的依赖。
 
 ```bash
@@ -96,10 +108,10 @@ libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007fc85a283000)
 
 从输出列表中选择出详情信息并一个个复制是耗时且易出错的。
 
-感谢我们可以将其半自动化。我们重新列出相关依赖项并形成一个列表，通过循环来进行复制操作。
+我们可以将其半自动化。我们重新列出相关依赖项并形成一个列表，通过循环来进行复制操作。
 
 
-我们使用 `ldd` 列出依赖项并将结果通过管道作为 `egrep` 的输出。
+我们使用 `ldd` 列出依赖项并将结果通过管道作为 `egrep` 的输入。
 
 - `egrep` 命令的使用跟 `grep -E` 是相同的。
 
@@ -182,7 +194,7 @@ linuxea@linuxea-PC:~/testroot$ for i in $list; do cp -v --parent $i $chr; done
 ```
 
 
-伴随着最后一个命令的依赖项复制到 chroot 环境的完成。
+伴随着最后一个命令的依赖项复制到 `chroot` 环境的完成。
 
 我们终于准备好使用 `chroot` 的准备工作。
 
@@ -288,16 +300,16 @@ rm -r $chr
 那么什么时候你应该使用 `chroot`？
 
 
-`chroot` 环境提供类似于虚拟机的功能，但它是一个更轻量级的解决方案。它也不需要在宿主系统中安装内核，而共享您现有的内核。
+`chroot` 环境提供类似于虚拟机的功能，但它是一个更轻量级的解决方案。它也不需要在宿主系统中安装内核，而共享现有的内核。
 
 
 ### Software Development and Product Verification.
 
-开发人员编写软件， 产品验证团队（PV）测试软件。
+开发人员编写软件，产品验证团队（PV）测试软件。
 
 有时候验证团队发现的一些问题无法在开发者电脑上进行复现。
 
-开发者电脑拥有各种工具以及库，这是普通用户与产品验证团队所没有拥有的。
+开发者电脑拥有各种工具以及库，这是普通用户与产品验证团队所没拥有的。
 
 通常，适用于开发人员但不适用于其他人的新软件是因为开发人员电脑包含着软件测试版本中所没有的资源。
 
@@ -317,9 +329,9 @@ rm -r $chr
 
 ### Ringfencing Applications. 
 
-在 `chroot` 环境中运行 `FTP` 服务器或其他联网设备可以限制外部攻击者可以造成的破坏。 
+在 `chroot` 环境中运行 `FTP` 服务器或其他联网设备可以限制外部攻击者能够造成的破坏。 
 
-这可能是加强系统安全性的重要一步。
+这可以成为加强系统安全性的重要一步。
 
 
 
@@ -334,8 +346,10 @@ rm -r $chr
 
 
 
+## 参考
 
-
+- [1] [How to Use the chroot Command on Linux](https://www.howtogeek.com/441534/how-to-use-the-chroot-command-on-linux/)
+- [2] [老司机终于还是翻车了-从零到一手写一个 Docker](https://www.bilibili.com/video/BV1K44y1j7DV)
 
 
 
