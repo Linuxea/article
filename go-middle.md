@@ -1,19 +1,10 @@
 # Learn Go Middlewares by Examples
 
-
-Middlewares are one of the most important concepts in backend engineering. They are standalone, reusable pieces of software that link different systems together.
-
 中间件是后台工程中最重要的概念之一。
 
 它们是独立的，可重用的软件组件，将不同的系统连接起来。
 
-
-In web development, it is common to place one or many middlewares between the client and server. This essentially creates a bridge between data and user interfaces.
-
-
-在 web 开发中，client 与 server 之间普通存在着一个或者多个中间件。这潜在地为数据与 UI 搭建了一座桥梁。
-
-Each middleware acts independently on an HTTP request or response. The output of one middleware can be the input of another middleware. This forms a chain of middlewares.
+在 web 开发中， `client` 与 `server` 之间普通存在着一个或者多个中间件。潜在地为数据与 UI 搭建了一座桥梁。
 
 中间件独立于 Http 的请求与响应。
 
@@ -21,16 +12,9 @@ Each middleware acts independently on an HTTP request or response. The output of
 
 通过这种方式组成了一条中间件链。
 
-Why middlewares? In web applications, middlewares allow us to centralize and reuse common functionalities on each request or response. For example, you can have a middleware that logs every HTTP request.
-
-
 为什么要中间件？
 
 在 web 应用中，中间件的应用可以让我们集中和重复每个请求与响应的的通用功能。比如最常见的为每个请求进行日志记录。
-
-
-To design Go middlewares, there are certain rules and patterns that we have to follow. This article will teach you the concepts of a Go middleware and create two of them for a simple application!
-
 
 在设计中间件这一方面，有一些明确的规则与模式需要我们去遵守。
 
@@ -63,36 +47,31 @@ func main() {
 func home(w http.ResponseWriter, r *http.Request) {
 	// Writes a byte slice with the text "Welcome to Go Middleware"
 	// in the response body
-	time.Sleep(time.Second*time.Duration(rand.Intn(2)) + 1)
+	time.Sleep(time.Second*time.Duration(rand.Intn(5)) + 1)
 	w.Write([]byte("Welcome to Go Middleware"))
 }
 ```
 
 
-在上述代码中，我们创建了一个新的非默认的 `ServeMux`， 添加了路由规则 `/home` 映射到处理函数 `home`,
+在上述代码中，我们创建了一个新的并且非默认的 `ServeMux`， 添加了路由规则 `/home` 映射到处理函数 `home`,
 随后将这个  `ServeMux` 注册监听到 `8080` 端口。
 
 将代码运行起来并在终端进行请求会得到如下：
 ```bash
-➜  go_middle go run . &
+➜  go run . &
 [1] 28901
-➜  go_middle curl localhost:8080/home
+➜  curl localhost:8080/home
 Welcome to Go Middleware
 ```
 
 
 ## Handler and ServeHTTP
 
-Before we start creating Go middleware, it is good for us to know some theories. In particular, what exactly is a handler in Go?
-
-
 在我们开始创建中间件前，理论一些理论知识是有益的。
 
 特别是，在 Go 中的 `handler` 是什么。
 
-In Go, a handler is just an object (struct) that satisfies the http.Handler interface.
-
-在 Go 中，`handler` 是满足 `http.Handler` 接口定义的一个对象或者结构体
+在 Go 中，`handler` 是满足 `http.Handler` 接口定义的一个对象或者结构体。
 
 
 ```go
@@ -100,13 +79,6 @@ type Handler interface {
 	ServeHTTP(ResponseWriter, *Request)
 }
 ```
-Meanwhile, a ServeMux object (be it default or custom) is also a http.Handler . It executes its ServeHTTP method when it receives an HTTP request, which matches the URL request path with the appropriate handler.
-
-If there is a match, ServeMux proceeds to call the ServeHTTP method of the handler and passes the request to it. The handler then executes its route handling logic and returns a response.
-
-
-In a way, you can think of Go’s application routing as a chain of handlers with ServeHTTP methods called one after another.
-
 
 通过 `ListenAndServe` 方法签名
 ```go
@@ -123,10 +95,6 @@ func ListenAndServe(addr string, handler Handler) error {
 
 
 总之，你可以认为 Go 的 web 应用路由是通过一系列的 `http.Handler`  与方法 `ServerHTTP` 依次调用来实现的。
-
-
-
-Hence, to fit into the chain, a Go middleware must behave like a handler. It performs some logic before passing a request to the next handler by calling the handler’s ServeHTTP method!
 
 因此，为了适应进入这一条链中，Go 中间件同样也需要扮演 `http.Handler`  的角色。
 
@@ -201,15 +169,6 @@ func traceIdMiddle(next http.Handler) http.Handler {
 接下来的示例都会以高阶函数的方式来完成例子
 
 
-A lot is going on in the snippet above. Let’s break it down.
-goMiddleware is a function that accepts a next parameter of type http.Handler and returns another http.Handler .
-A function f is created inside goMiddleware . It takes in two parameters of type http.ResponseWriter and *http.Request , which are the signatures of a typical handler function.
-The middleware logic is contained inside f .
-f passes the request to the next handler by calling the handler’s ServeHTTP method.
-f is transformed and returned as a http.Handler with the http.HandlerFunc adapter.
-The returned f forms a closure over the next handler. Hence, it can still access the local next variable even after it is returned by goMiddleware .
-
-
 
 上面的代码片段包含很多信息，一起来看看：
 - traceIdMiddle 是一个接收参数为 `http.Handler`，返回参数也为 `http.Handler` 的函数。
@@ -218,15 +177,10 @@ The returned f forms a closure over the next handler. Hence, it can still access
 - 函数 `f` 通过 `http.HandlerFunc` 函数转换与适配为 `http.Handler` 并返回。
 - `f` 形成了一个闭包，因为在其被返回后依然能够访问到变量 `next` 。 
 
-The main takeaway is that a Go middleware is a function that accepts the next handler in the request chain as a parameter. It returns a handler that performs some logic before executing the next handler in the chain.
-
 主要内容是 Go 中间件是一个函数，它接受请求链中的下一个 `http.Handler` 作为参数。 它返回一个 `http.Handler`，该处理程序在执行链中的下一个处理程序之前或者之后执行一些逻辑。
 
 
 ## Creating Go Middlewares
-
-
-Hooray! Now that we know the right concepts and theories, things will be much easier from here onwards. In this section, we will attempt to create two middleware, one to log HTTP requests and another to add basic security response headers.
 
 现在我们了解中间件正确的概念与理论，接下来的事情会变得更加简单。
 
@@ -281,37 +235,18 @@ func handleTimeLogMiddle(handler http.Handler) http.Handler {
 
 ```
 
-
-logRequestMiddleware logs the network address, protocol version, HTTP method, and request URL to the standard output. This information is available in Go’s http.Request object.
-
 `logRequestMiddleware` 记录了网络地址，协议版本，与请求方法，请求 URL 到标准输出中。这些信息在 `http.Request` 是可获取的。
 
-
-
-secureHeadersMiddleware sets two security headers in the response (X-XSS-Protection and X-Frame-Options) to defend against XSS and Clickjacking attacks.
-
-
 `secureHeadersMiddleware` 在响应中设置了两个安全头部信息来防御对抗 XSS 等攻击。
-
 
 `handleTimeLogMiddle` 在下一个 `handler` 执行前记录了开始时间，在处理完成后记录结束时间，以此来计算总共花费处理时长，这可以很方便找出处理时长较高的逻辑。
 
 
-Before we register our middlewares in main.go , it is important to know that the positioning of your middlewares affects the behavior of your application.
-
 但是，在我们注册这些中间件之前，很重要的一点是要明确知道中间件位置的不同可能对我们应用行为造成的影响。
 
-In particular, if we want a middleware to act on every HTTP request, we should place it before the ServeMux. In other words, we need to pass the ServeMux handler as an argument to our middleware.
-
-特别地是，如果我们想要一个中间作用于每个 HTTP 请求，那么我们应该将它放置在 `ServeMux` 之前，换种方式说，我们需要将 `ServeMux` 作为下一个 `http.Handler` 传递给我们的中间件。
-
-On the other hand, if we want a middleware to act on specific routes, we need to place them after the ServeMux. We pass individual route handlers as arguments to our middleware to achieve this.
-
+特别是，如果我们想要一个中间作用于每个 `HTTP` 请求，那么我们应该将它放置在 `ServeMux` 之前，换种方式说，我们需要将 `ServeMux` 作为下一个待处理 `http.Handler` 传递给我们的中间件。
 
 另一方面，如果我们想要中间件作用于特定的路由，我们需要将它放置在 `ServeMux` 之后，将其作为参数传递给我们的中间件来实现这一点。
-
-
-We want every request to be logged in our simple application and each response to be set with the basic security headers. Hence, both the middlewares should be placed before the ServeMux.
 
 在这个例子中，我们需要将 `logHttpRequestMiddle` 与 `securityHeaderMiddle` 中间件作用于每一个 HTTP 请求。因此两个中间件都应该放置在 `ServeMux` 之前。
 
@@ -344,8 +279,6 @@ func home(w http.ResponseWriter, r *http.Request) {
 	time.Sleep(time.Second*time.Duration(rand.Intn(5)) + 1)
 	w.Write([]byte("Welcome to Go Middleware"))
 }
-
-
 ```
 
 
@@ -392,7 +325,9 @@ func home(w http.ResponseWriter, r *http.Request) {
 通过 `curl` 命令来检查中间件工作情况。
 
 - 启动 HTTP 服务器并以后台方式运行
-- curl 命令请求 /home 路由地址 -X 选项用来指定请求的方式为 GET -i 选项用来打印响应 header 信息
+- curl 命令请求 `/home` 路由地址 
+  - `-X` 选项用来指定请求的方式为 `GET` 
+  - `-i` 选项用来打印响应 `header` 信息
 
 ```bash
 ➜  go-middle go run . &
@@ -437,7 +372,10 @@ Content-Type: text/plain; charset=utf-8
 
 你也可以发现通过这种方式，当中间件链数量太多，代码并不具备很好的拓展性，从而难以维护。
 
-幸运的是，已经有第三方包来帮助我们管理中间件。其中有一些比较出名，你可以去了解一下。
+幸运的是，已经有第三方包来帮助我们管理中间件。其中有一些比较出名，可以去了解一下。
 
 
+## 参考
 
+- [1] [Learn Go Middlewares by Examples](https://medium.com/geekculture/learn-go-middlewares-by-examples-da5dc4a3b9aa)
+- [2] [Using Dependency Inversion in Go](https://medium.com/itnext/using-dependency-inversion-in-go-31d8bf9b3760)
