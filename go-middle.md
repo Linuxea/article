@@ -225,3 +225,219 @@ The main takeaway is that a Go middleware is a function that accepts the next ha
 
 ## Creating Go Middlewares
 
+
+Hooray! Now that we know the right concepts and theories, things will be much easier from here onwards. In this section, we will attempt to create two middleware, one to log HTTP requests and another to add basic security response headers.
+
+现在我们了解中间件正确的概念与理论，接下来的事情会变得更加简单。
+
+在这一节，我们尝试创建多个不同的中间件，一个是记录 http 的请求日志，一个是添加添加基础的安全 header 信息，另外一个是统计业务处理的时间。
+
+
+```golang
+package main
+
+import (
+	"fmt"
+	"net/http"
+	"time"
+)
+
+func logRequestMiddleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+
+		fmt.Printf("LOG %s - %s %s %s\n", r.RemoteAddr, r.Proto, r.Method, r.URL)
+
+		// continue handle
+		handler.ServeHTTP(rw, r)
+
+	})
+}
+
+func secureHeadersMiddleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+
+		rw.Header().Set("X-XSS-Protection", "1; mode-block")
+		rw.Header().Set("X-Frame-Options", "deny")
+
+		// continue handle
+		handler.ServeHTTP(rw, r)
+
+	})
+}
+
+func handleTimeLogMiddle(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+
+		now := time.Now()
+
+		// continue handle
+		handler.ServeHTTP(rw, r)
+
+		duration := time.Since(now).Milliseconds()
+		fmt.Printf("请求处理时间: %d(ms)", duration)
+
+	})
+}
+
+```
+
+
+logRequestMiddleware logs the network address, protocol version, HTTP method, and request URL to the standard output. This information is available in Go’s http.Request object.
+
+`logRequestMiddleware` 记录了网络地址，协议版本，与请求方法，请求 URL 到标准输出中。这些信息在 `http.Request` 是可获取的。
+
+
+
+secureHeadersMiddleware sets two security headers in the response (X-XSS-Protection and X-Frame-Options) to defend against XSS and Clickjacking attacks.
+
+
+`secureHeadersMiddleware` 在响应中设置了两个安全头部信息来防御对抗 XSS 等攻击。
+
+
+`handleTimeLogMiddle` 在下一个 `handler` 执行前记录了开始时间，在处理完成后记录结束时间，以此来计算总共花费处理时长，这可以很方便找出处理时长较高的逻辑。
+
+
+Before we register our middlewares in main.go , it is important to know that the positioning of your middlewares affects the behavior of your application.
+
+但是，在我们注册这些中间件之前，很重要的一点是要明确知道中间件位置的不同可能对我们应用行为造成的影响。
+
+In particular, if we want a middleware to act on every HTTP request, we should place it before the ServeMux. In other words, we need to pass the ServeMux handler as an argument to our middleware.
+
+特别地是，如果我们想要一个中间作用于每个 HTTP 请求，那么我们应该将它放置在 `ServeMux` 之前，换种方式说，我们需要将 `ServeMux` 作为下一个 `http.Handler` 传递给我们的中间件。
+
+On the other hand, if we want a middleware to act on specific routes, we need to place them after the ServeMux. We pass individual route handlers as arguments to our middleware to achieve this.
+
+
+另一方面，如果我们想要中间件作用于特定的路由，我们需要将它放置在 `ServeMux` 之后，将其作为参数传递给我们的中间件来实现这一点。
+
+
+We want every request to be logged in our simple application and each response to be set with the basic security headers. Hence, both the middlewares should be placed before the ServeMux.
+
+在这个例子中，我们需要将 `logHttpRequestMiddle` 与 `securityHeaderMiddle` 中间件作用于每一个 HTTP 请求。因此两个中间件都应该放置在 `ServeMux` 之前。
+
+
+```golang
+package main
+
+import (
+	"log"
+	"math/rand"
+	"net/http"
+	"time"
+)
+
+func main() {
+	// Initialize a new ServeMux
+	mux := http.NewServeMux()
+	// Register home function as handler for /home
+	mux.HandleFunc("/home", home)
+	// Run HTTP server with custom ServeMux at localhost:4000
+	err := http.ListenAndServe(":8080", logHttpRequestMiddle(securityHeaderMiddle(mux)))
+	// Exit if any errors occur
+	log.Fatal(err)
+}
+
+// Handles HTTP requests to /home
+func home(w http.ResponseWriter, r *http.Request) {
+	// Writes a byte slice with the text "Welcome to Go Middleware"
+	// in the response body
+	time.Sleep(time.Second*time.Duration(rand.Intn(5)) + 1)
+	w.Write([]byte("Welcome to Go Middleware"))
+}
+
+
+```
+
+
+
+
+另外我们只需要统计 `home` 处理器的执行时长，因此我们需要 `handleTimeLogMiddle` 中间件放置在 `ServeMux` 之后。
+```golang
+package main
+
+import (
+	"log"
+	"math/rand"
+	"net/http"
+	"time"
+)
+
+func main() {
+	// Initialize a new ServeMux
+	mux := http.NewServeMux()
+	// Register home function as handler for /home
+	mux.HandleFunc("/home", func(rw http.ResponseWriter, r *http.Request) {
+		handleTimeLogMiddle(http.HandlerFunc(home)).ServeHTTP(rw, r)
+	})
+	// Run HTTP server with custom ServeMux at localhost:4000
+	err := http.ListenAndServe(":8080", logHttpRequestMiddle(securityHeaderMiddle(mux)))
+	// Exit if any errors occur
+	log.Fatal(err)
+}
+
+// Handles HTTP requests to /home
+func home(w http.ResponseWriter, r *http.Request) {
+	// Writes a byte slice with the text "Welcome to Go Middleware"
+	// in the response body
+	time.Sleep(time.Second*time.Duration(rand.Intn(5)) + 1)
+	w.Write([]byte("Welcome to Go Middleware"))
+}
+
+
+```
+
+
+## Quick Testing
+
+通过 `curl` 命令来检查中间件工作情况。
+
+- 启动 HTTP 服务器并以后台方式运行
+- curl 命令请求 /home 路由地址 -X 选项用来指定请求的方式为 GET -i 选项用来打印响应 header 信息
+
+```bash
+➜  go-middle go run . &
+[1] 30145
+
+➜  go-middle curl -X GET -i localhost:8080/home
+LOG [::1]:53846 - HTTP/1.1 GET /home
+请求处理时间: 1004(ms)HTTP/1.1 200 OK
+X-Frame-Options: deny
+X-Xss-Protection: 1; mode-block
+Date: Mon, 10 Jan 2022 15:11:00 GMT
+Content-Length: 24
+Content-Type: text/plain; charset=utf-8
+
+Welcome to Go Middleware
+```
+
+
+我们可以看到 `logHttpRequestMiddle` 中间件打印了请求日志 
+```bash
+LOG [::1]:53846 - HTTP/1.1 GET /home
+```
+
+`handleTimeLogMiddle` 打印出了执行时长
+```bash
+请求处理时间: 1004(ms)HTTP/1.1 200 OK
+```
+
+`securityHeaderMiddle` 设置了头部信息
+```bash
+X-Frame-Options: deny
+X-Xss-Protection: 1; mode-block
+Date: Mon, 10 Jan 2022 15:11:00 GMT
+Content-Length: 24
+Content-Type: text/plain; charset=utf-8
+```
+
+
+## Final Thoughts
+
+走到这里意味着你对 Go 中间件编写已经有了初步的了解。
+
+你也可以发现通过这种方式，当中间件链数量太多，代码并不具备很好的拓展性，从而难以维护。
+
+幸运的是，已经有第三方包来帮助我们管理中间件。其中有一些比较出名，你可以去了解一下。
+
+
+
