@@ -126,3 +126,117 @@ Depending on the capacity, performance, and reliability requirements, RAID can g
 
 ## RAID
 
+另外一种常用的架构方式是将多个磁盘结合为一个逻辑磁盘来组成一个冗余独立的磁盘阵列。
+
+这就是 RAID（Redundant Array of Independent Disks），这能够用来提升数据访问性能以及加强数据存储的可靠性。
+
+根据容量，性能与可靠性要求，RAID 通常可以划分为多个等级，比如 RAID0, RAID1, RAID5, RAID10 等等。
+
+
+RAID0 has the best read and write performance, but does not provide data redundancy.
+Other levels of RAID, on the basis of providing data redundancy, also have a certain degree of optimization for read and write performance.
+
+- RAID0 拥有最好的读写性能，但是没有提供数据冗余
+- 其他等级的 RAID, 在提供数据冗余的基础上，也拥有一定程序上的优化
+
+
+
+
+Major and Minor Device Number
+In Linux, the disk is actually managed as a block device, that is, data is read and written in block units, and random read and write is supported. Each block device is assigned two device numbers, the major and minor device numbers. The major device number is used in the driver to distinguish device types; the minor device number is used to number multiple devices of the same type.
+
+
+## Major and Minor Device Number
+
+在 linux 中，磁盘事实上是作为一个块设备被管理的，这意味着数据是以块单位来读写，并且支持随机读写。
+
+每一个块设备被分配两个设备编号：主次设备号。
+
+主设备号在驱动中被用来区分设备类型
+次设备号用于对同一类型的多个设备进行编号。
+
+
+
+
+## Generic Block Layer
+
+Similar to VFS, Linux manages various block devices through a unified general block layer.
+The general block layer is actually a block device abstraction layer between the file system and the disk drive. It mainly has two functions.
+
+
+与 VFS 相似，Linux 通过一个统一的通用块层来管理块设备。
+
+
+通用块层事实上是处于文件系统与磁盘设备中间的块设备抽象层。
+
+它主要有两个作用。
+
+It provides standard interfaces for accessing block devices for file systems and application, it also abstracts various heterogeneous disk devices into unified block devices, and provides a unified framework to manage the drivers of these decices.
+It queues the I/O requests sent by the file system and applications, and improves disk reading/writing efficiency through reordering, request merging, etc.
+
+
+- 它为文件系统和应用程序提供访问块设备的标准接口，还将各种异构磁盘设备抽象为统一的块设备，并提供统一的框架来管理这些设备的驱动程序。
+- 它将文件系统和应用程序发送的 I/O 请求排队，并通过重新排序、请求合并等提高磁盘读/写效率。
+
+
+Among them, the process of sorting I/O requests is the I/O scheduling that we are familiar with. In fact, the Linux kernel supports four I/O scheduling algorithms, namely NONE, NOOP, CFQ, and DeadLine.
+
+其中，排序 IO 请求的过程就是我们所熟悉的 IO 调度。
+事实上，Linux kernel 支持四种 IO 调度算法，NONE, NOOP, CFQ 与 DeadLine.
+
+
+
+I/O stack
+After understanding the working principles of the disk and the general block layer, and combining them with the file system principle we talked about in the previous issue, we can look at the I/O principle of the Linux storage system as a whole.
+We can divide the I/O stack of the Linux storage system into three layers from top to bottom, namely the file system layer, the general block layer and the device layer. The relationship between these three I/O layers is shown in the figure below, which is actually the panorama of the I/O stack of the Linux storage system.
+
+## I/O stack
+
+在明白磁盘与通用块层的工作原理后，并且将它们与文件系统原理结合起来，我们可以整体看看 Linux 存储系统的 I/O 原理。
+
+我们可以由顶至下将 Linux 存储系统的 I/O 栈划分为三层，文件系统层，通用块层以及设备层。
+
+下面的图展示了它们三层单的关系，这实际上是 Linux 存储系统 I/O 栈的全景图。
+
+Based on this panorama of the I/O stack, we can more clearly understand how storage system I/O works.
+The file system layer, includes the implementation of the virtual file system and various other file systems. It provides a standard file access interface for upper-layer applications; the lower layer will store and manage disk data through the general block layer.
+Generic block layer, including block device I/O queues and I/O schedulers. It queues I/O requests to the file system, reorders and merges requests, and then sends them to the next device layer.
+The device layer, including storage devices and corresponding drivers, is responsible for the I/O operations of the final physical device.
+
+
+
+基于这张 I/O 栈全景图，我们可以更加清晰地明白存储系统 I/O 是如何工作的。
+
+- 文件系统层，包含了虚拟文件系统的实现以及许多其他的文件系统。它提示一个标准的文件访问接口给上层应用；较低层会通过通用块层来存储以及管理磁盘数据
+- 通用块层：包含块设备 I/O 请求以及 I/O 调度。它将 I/O 请求排队到文件系统，重新排序和合并请求，然后将它们发送到下一个设备层。
+- 设备层：包含存储设备与对应的驱动，它负责最终物理设备的 I/O 操作。
+
+
+The I/O of the storage system is usually the slowest link in the entire system. Therefore, Linux optimizes I/O efficiency through various caching mechanisms.
+For example, in order to optimize the performance of file access, various caching mechanisms such as page cache, inode cache, and directory entry cache are used to reduce direct calls to lower-level block devices.
+Similarly, in order to optimize the access efficiency of the block device, a buffer is used to cache the data of the block device.
+
+
+存储系统的 I/O 环节通常是整个系统最慢的。
+因此， linux 通过大量的缓存机制来优化 I/O 效率，比如 page cache, inode cache 和 directory entry cache 就被用来调用低级别块设备。
+同样地，为了优化访问块设备的效率，缓冲区用于缓存块设备的数据。
+
+
+Conclusion
+The Linux storage system I/O stack consists of the file system layer, the general block layer, and the device layer.
+Among them, the general block layer is the core of Linux disk I/O. Upwards, it provides a standard interface for accessing block devices for file systems and applications; downwards, it abstracts various heterogeneous disk devices into a unified block device and responds to I/O sent by the file system and applications. /O requests for reordering, request merging, etc., improve the efficiency of disk access.
+
+## Conclusion
+
+Linux存储系统I/O栈由文件系统层、通用块层和设备层组成。
+
+其中，通用块层是核心。
+
+向上，它为文件系统与应用提示了一套标准的接口用来访问块设备。
+向下，它抽象了众多异构磁盘设备到为一个统一块设备以及为文件系统与应用的 I/O 请求进行响应，I/O 请求重排序、请求合并等，提高磁盘访问效率。
+
+
+
+## 参考
+
+- [1] [Linux — Disk I/O Deep Dive](https://medium.com/dev-genius/linux-disk-i-o-deep-dive-ccd2dd30b98e)
