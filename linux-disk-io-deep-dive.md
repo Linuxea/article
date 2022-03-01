@@ -64,4 +64,65 @@ For solid-state disks, although its random performance is much better than that 
 
 事实上，不管是机械磁盘还是固态磁盘，同个磁盘的随机 IO 都会比顺序 IO 慢得多，原因也是显而易见的。
 
-- 对于机械磁盘来讲，正如我们之前提到的，随机 IO 自然比顺序 IO 慢是因为基
+- 对于机械磁盘来讲，正如我们之前提到的，随机 IO 自然比顺序 IO 慢是因为它需要更多的磁头寻道与盘片旋转
+- 对于固态磁盘来讲，尽管其随机性能比机械磁盘性能更好，它同时有“先擦后写”的限制，随机读写会导致大量的垃圾收集，所以相应地，随机性能依然比连续 I/O 性能差。
+
+
+In addition, mechanical disks and solid-state disks each have a minimum read and write unit.
+The minimum read and write unit of a mechanical disk is a sector, with a general size of 512 bytes.
+The minimum read and write unit of the solid-state disk is page, usually, the size is 4KB, 8KB, etc.
+
+
+除此之外，机械磁盘与固态磁盘各自都拥有最小的读写单元。
+
+- 机械磁盘最小读写单元是一个扇区，一般大小为 512 字节
+- 固态磁盘最小的读写单元是一页，通过大小为 4kb, 8kb 等等
+
+
+
+
+However, I also mentioned that it is very inefficient to read and write units as small as 512 bytes each time. Therefore, the file system will form consecutive sectors or pages into logical blocks, and then use logical blocks as the smallest unit to manage data. The size of a common logical block is 4KB, that is, 8 consecutive sectors, or a single page, can form a logical block.
+
+
+
+但是，我也提到过每次读写小到 512 字节的单元是非常低效的。 因此，文件系统会将连续的扇区或页面组成逻辑块，然后以逻辑块为最小单位来管理数据。 一个普通逻辑块的大小为4KB，即8个连续的扇区，或者单个页面，可以组成一个逻辑块。
+
+
+Disk Interface
+In addition to classification according to storage media, another common classification method is to classify according to the interface, for example, hard disks can be divided into IDE (Integrated Drive Electronics), SCSI (Small Computer System Interface), SAS (Serial Attached SCSI), SATA (Serial ATA), FC (Fibre Channel), etc.
+
+## Disk Interface
+
+除了按照存储媒介来分类，另外一种常用的分类方式是根据接口。
+比如，固态磁盘可以被划分为 IDE（Integrated Drive Electronics）, SCSI(Small Computer System Interface), SAS(Serial Attached SCSI), SATA(Serial ATA), FC(Fibre Channel) 等等。
+
+
+Different interfaces are often assigned different device names. For example, IDE devices will be assigned an hd prefixed device name, and SCSI and SATA devices will be assigned an sd prefixed device name. If there are multiple disks of the same type, they will be numbered in the alphabetical order of a, b, c, etc.
+
+
+
+不同的接口经常被分配不同的设备名称。
+比如，IDE 设备分配到以 hd 前缀的设备名称，
+SCAI 与 SATA 设备分配以 sd 前缀的设备名称。
+如果有多个相同类型的磁盘，它们将按照 a、b、c 等字母顺序进行编号。
+
+
+In addition to the classification of the disks themselves, when you connect the disks to the server, they can be divided into different architectures according to different usage methods.
+
+
+除了磁盘本身的分类外，当你将磁盘连接到服务器时，可以根据不同的使用方式将它们划分为不同的架构。
+
+The simplest is to use it directly as an independent disk device. These disks are often divided into different logical partitions as needed, and each partition is numbered. For example, the /dev/sda we used many times before can also be divided into two partitions /dev/sda1 and /dev/sda2.
+
+
+最简单是将其作为一个独立的磁盘设备来使用，通过会根据需求来将其划分为不同的逻辑分区，并且每个分区被编号。
+比如，我们之前经常使用的 /dev/sda 也能够划分为两个分区 /dev/sda1 与 /dev/sda2.
+
+
+RAID
+Another commonly used architecture is to combine multiple disks into a logical disk to form a redundant independent disk array, that is, RAID (Redundant Array of Independent Disks), which can improve the performance of data access and enhance the reliability of data storage.
+Depending on the capacity, performance, and reliability requirements, RAID can generally be divided into multiple levels, such as RAID0, RAID1, RAID5, RAID10, and so on.
+
+
+## RAID
+
