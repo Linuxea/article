@@ -5,10 +5,13 @@ In this article, let’s take a look at the performance indicators of the disk a
 
 ## Linux Disk Performance Metrics
 
+> 当我们在谈论 disk performance 的时候我们在谈论什么
+
 When it comes to measuring disk performance, we often mention five common indicators: utilization, saturation, IOPS, throughput, and response time. These five indicators are the basic indicators to measure disk performance.
 
 
-当谈论到磁盘的性能时，我们经常提到五个普遍的指标：utilization, saturatin, IOPS, throughput 和 response time.
+当谈论到磁盘的性能时，我们经常提到五个普遍的指标：`utilization`（利用率）, `saturation`（饱和）, `IOPS`, `throughput`（吞吐量） 和 `response time`.
+
 这五个指标是评估磁盘性能的基本。
 
 
@@ -19,8 +22,8 @@ Throughput: The size of I/O requests per second.
 Response time: Refers to the interval time between sending an I/O request and receiving a response.
 
 
-- Utilization: 磁盘处理 I/O 的时间百分比，过多的使用率（比如大于 80%）通常意味着存在磁盘 I/O 瓶颈
-- Saturation: 指磁盘处理 I/O 的繁忙程序。过度饱合意味着磁盘存在严重的性能瓶颈。当当饱和度为 100% 时，磁盘无法接受新的 I/O 请求。
+- Utilization: 磁盘处理 I/O 的时间百分比，过度使用（比如大于 80%）通常意味着存在磁盘 I/O 瓶颈
+- Saturation: 指磁盘处理 I/O 的繁忙程序。过度饱和意味着磁盘存在严重的性能瓶颈。当饱和度为 100% 时，磁盘无法接受新的 I/O 请求。
 - IOPS (Input/Ouput Per Second)：指每秒 I/O 请求数量。
 - Throughput: 每秒 I/O 请求的大小。
 - Response time: 指发出 I/O 请求到接收响应之间的时间间隔。
@@ -28,7 +31,7 @@ Response time: Refers to the interval time between sending an I/O request and re
 
 It should be noted here that utilization only considers the presence or absence of I/O, not the size of the I/O. In other words, when the utilization is 100%, it is still possible for the disk to accept new I/O requests.
 
- 这里要提到的是，利用率只考虑 I/O 的有无，而不是 I/O 大小。也就是说，当利用率达到 100% 时，磁盘依然可能接收新的 I/O 请求。
+这里要提到的是，利用率只考虑 I/O 的有无，而不是 I/O 大小。也就是说，当利用率达到 100% 时，磁盘依然可能接收新的 I/O 请求。
 
 
 Generally speaking, when you select a server for an application, you must first perform a benchmark test on the I/O performance of the disk, so that you can accurately assess whether the disk performance can meet the needs of the application.
@@ -39,7 +42,7 @@ Generally speaking, when you select a server for an application, you must first 
 Of course, this requires you to test the performance of different I/O sizes (usually several values ​​between 512B and 1MB) in various scenarios such as random read, sequential read, random write, and sequential write.
 
 
-当然，这需要你在随机读、顺序读、随机写、顺序写等各种场景下测试不同I/O大小（通常是512B到1MB之间的几个值）的性能。
+当然，这需要你在随机读、顺序读、随机写、顺序写等各种场景下测试不同 I/O 大小（通常是512B到1MB之间的几个值）的性能。
 
 
 
@@ -47,8 +50,8 @@ Of course, this requires you to test the performance of different I/O sizes (usu
 
 The first thing to observe is the usage of each disk. iostat is the most commonly used disk I/O performance observation tool. It provides various common performance indicators such as the usage, IOPS, and throughput of each disk. Of course, these indicators actually come from /proc/diskstats.
 
-首要需要观察的就是磁盘的使用情况。 iostat 是最常用的 I/O 磁盘性能观察工具。
-它提供了许多常用的性能指标如使用率， IOPS 与吞吐量。当然，这些指标事实上是来自于 /proc/diskstats.
+首要需要观察的就是磁盘的使用情况。 `iostat` 是最常用的 I/O 磁盘性能观察工具。
+它提供了许多常用的性能指标如使用率， IOPS 与吞吐量。当然，这些指标事实上是来自于 `/proc/diskstats`.
 
 Following is an example output of iostat :
 
@@ -81,8 +84,10 @@ r_await+w_await is the response time
 You may have noticed that disk saturation is not directly available from iostat. In fact, there is usually no other simple way to measure saturation. However, you can compare what you observe, the average request queue length or the wait time for read and write requests to complete, with the results of benchmark tests (such as through fio) to synthesize Evaluate disk saturation.
 
 
-你应该注意到磁盘指标 saturation 饱合度 并没有从 iostat 命令中直接得到。
-事实上，也不存在其他简单方法来评估饱合度。不过，你可以比较你所观察到的，平均请求队列长度或者读写请求完成的等待时间，用基准测试的结果（比如通过fio）来综合评估磁盘饱和度。
+你应该注意到磁盘指标 saturation 饱和度 并没有从 iostat 命令中直接得到。
+事实上，也不存在其他简单方法来评估饱和度。
+
+不过，你可以比较你所观察到的，平均请求队列长度或者读写请求完成的等待时间，用基准测试的结果（比如通过fio）来综合评估磁盘饱和度。
 
 ## Process I/O observation
 
@@ -92,7 +97,8 @@ The iostat mentioned above only provides the overall I/O performance data of the
 
 除了每个磁盘的I/O情况，每个进程的I/O情况也是大家关注的重点。
 
-上面提到的 iostat 仅仅提供了全局的 I/O 性能数据。缺点是无法知道哪个线程正在对磁盘进行读写。为了观察进程的 I/O，你可以使用工具如 pidstat 与 iotop.
+上面提到的 iostat 仅仅提供了全局的 I/O 性能数据。缺点是无法知道哪个线程正在对磁盘进行读写。
+为了观察进程的 I/O，你可以使用工具如 `pidstat` 与 `iotop`.
 
 For example, to use pidstat
 举个粟子，使用 pidstat:
@@ -147,9 +153,13 @@ In addition to real-time viewing with pidstat, sorting processes according to I/
 
 这是一个类似 top 的工具，你可以通过 I/O 大小来对进行进行排序，并找到具有更大 I/O 的进程。
 
-
-xxxx
-（放图好了）
+```bash
+$ iotop
+Total DISK READ :       0.00 B/s | Total DISK WRITE :       7.85 K/s 
+Actual DISK READ:       0.00 B/s | Actual DISK WRITE:       0.00 B/s 
+  TID  PRIO  USER     DISK READ  DISK WRITE  SWAPIN     IO>    COMMAND 
+15055 be/3 root        0.00 B/s    7.85 K/s  0.00 %  0.00 % systemd-journald
+```
 
 
 From this output, you can see that the first two lines represent the total disk read and write size of the process and the total disk real read and write size, respectively. They may not be equal due to factors such as caches, buffers, I/O coalescing, etc.
