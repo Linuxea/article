@@ -191,14 +191,12 @@ The results show the number of goroutines in the global queue with runqueue and 
 
 结果展示了协程全局队列 runqueue 以及大括号中本地队列的大小。
 
-正如我们所看到随着属性的增长，当本地队列等待协程数量达到 256 个时，下一个协程将会被放到全局队列中。
-
 - gomaxprocs: 处理器配置
 - idleprocs: 没有处于使用状态的处理器
 - threads: 使用中的线程
 - idlethreads: 没有使用的线程
 - runqueue: 全局队列中的协程
-- [1 0 0 0 0 0 0 0 0 0 0 0]: 各个处理器中的本地协程队列
+- `[1 0 0 0 0 0 0 0 0 0 0 0]`: 各个处理器中的本地协程队列
 
 ```log
 ➜  gotour GODEBUG=schedtrace=1000 go run main.go
@@ -226,3 +224,4 @@ SCHED 6037ms: gomaxprocs=12 idleprocs=0 threads=13 spinningthreads=0 idlethreads
 ## 参考
 
 - [1] [A Deep Dive Into Go Concurrency](https://betterprogramming.pub/deep-dive-into-concurrency-of-go-93002344d37b)
+- [2] [Go 调度器跟踪](https://colobu.com/2016/04/19/Scheduler-Tracing-In-Go/)
