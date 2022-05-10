@@ -31,5 +31,122 @@ In this article, you will use build tags in Go to generate different executable 
 
 
 
-## Prerequisites
+## Building the Free Version
 
+Let’s start by building the Free version of the application, as it will be the default when running go build without any build tags. Later on, we will use build tags to selectively add other parts to our program.
+
+我们通过构建 Free 版本的应用作为开始，同时也是运行 `go build` 时没有指命任意构建标签的默认版本。
+
+```golang
+➜  gobuildsample pwd
+/mnt/c/Users/Linux/Desktop/code/gobuildsample
+➜  gobuildsample go mod init linuxea.com/gobuildsample
+go: creating new go.mod: module linuxea.com/gobuildsample
+➜  gobuildsample touch main.go
+➜  gobuildsample touch feature.go
+➜  gobuildsample touch free.go
+```
+
+feature.go
+```go
+package main
+
+var features []string
+```
+
+free.go
+```golang
+package main
+
+func init() {
+	features = append(features, "freeFeature#1", "freeFeature#2")
+}
+```
+
+
+main.go
+```go
+package main
+
+import "fmt"
+
+func main() {
+
+	for _, v := range features {
+		fmt.Println(v)
+	}
+}
+```
+
+In this file, we created a program that declares a slice named features, which holds two strings that represent the features of our Free application. The main() function in the application uses a for loop to range through the features slice and print all of the features available to the screen.
+
+上述程序中，我们创建变量为切片类型的 features.
+`free.go` 使用 `init` 追加了两个字符串来代表免费的功能特性, `main.go` 通过循环打印出所有可用功能。
+
+
+Save and exit the file. Now that this file is saved, we will no longer have to edit it for the rest of the article. Instead we will use build tags to change the features of the binaries we will build from it.
+
+保存并退出文件，在剩下的时间我们不会再编辑这些基础文件，而是通过构建标签方式来改变二进制文件中的功能集合。
+
+```zsh
+➜  gobuildsample git:(master) ✗ go build -o main.go .
+➜  gobuildsample git:(master) ✗ ./main.go
+freeFeature#1
+freeFeature#2
+```
+
+
+## Adding the Pro Features 
+
+We have so far avoided making changes to main.go, simulating a common production environment in which code needs to be added without changing and possibly breaking the main code. Since we can’t edit the main.go file, we’ll need to use another mechanism for injecting more features into the features slice using build tags.
+
+Let’s create a new file called pro.go that will use an init() function to append more features to the features slice:
+
+在不改变原来文件的前提下，通过其他方式注入更多功能。
+
+我们创建一个新文件 `pro.go` 与 `init()` 函数来追加功能到切片中。
+
+```zsh
+➜  gobuildsample touch pro.go
+```
+
+
+pro.go
+```golang
+package main
+
+func init() {
+	features = append(features, "proFeature#1")
+}
+```
+
+
+```zsh
+➜  gobuildsample git:(master) ✗ go build -o main .
+➜  gobuildsample git:(master) ✗ ./main
+freeFeature#1
+freeFeature#2
+proFeature#1
+```
+
+The application now includes both the Pro and the Free features. However, this is not desirable: since there is no distinction between versions, the Free version now includes the features that are supposed to be only available in the Pro version. To fix this, you could include more code to manage the different tiers of the application, or you could use build tags to tell the Go tool chain which .go files to build and which to ignore. Let’s add build tags in the next step.
+
+应用现在包含了 Pro 与 Free 两种功能。然而这还不是我们想要的：这两种版本没有区别，Free 版本拥有 Pro 才能提供的功能。
+为了进行修复，接下来使用构建标签来告诉 Go 工具链哪些 Go 文件需要构建而哪一些需要忽略。
+
+
+## Adding Build Tags
+
+You can now use build tags to distinguish the Pro version of your application from the Free version.
+
+Let’s start by examining what a build tag looks like:
+
+我们先从查看构建标签是长怎样的开始：
+
+```go
+// +build tag_name
+```
+
+By putting this line of code as the first line of your package and replacing tag_name with the name of your build tag, you will tag this package as code that can be selectively included in the final binary. Let’s see this in action by adding a build tag to the pro.go file to tell the go build command to ignore it unless the tag is specified. Open up the file in your text editor:
+
+将这一行放到文件的第一行并将 tag_name 替换为你的构建标签，
