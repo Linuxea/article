@@ -3,7 +3,7 @@
 
 ## Introduction
 
-Go 的构建标签决定文件是否引入构建过程。
+`Go` 的构建标签决定文件是否被引入构建过程。
 
 这个功能可以使开发者以一种快速且有组织的方式从是同一份源码中构建不同的应用版本。
 
@@ -11,8 +11,7 @@ Go 的构建标签决定文件是否引入构建过程。
 比如变更代码来解决不同的操作系统间的差异。
 
 
-本方以一个应用示例来演示如何使用构建标签，此应用示例提供了 Free, Pro 与 Enterprise 不同级别的功能集合，在面对不同的客户时提供不同的应用版本。
-
+本方以一个应用示例来演示如何使用构建标签，此应用示例提供了 `Free`, `Pro` 与 `Enterprise` 不同级别的功能集合，在面对不同的客户时提供不同的应用版本。
 
 
 ## Prepare & Free Version
@@ -90,7 +89,7 @@ func init() {
 }
 ```
 
-注意到 `pro.go` 文件首行是构建标签的声明，意味着构建过程中如果没有 pro 标签则不会引入此文件。
+注意到 `pro.go` 文件首行是构建标签的声明，意味着构建过程中如果没有 `pro` 标签则不会引入此文件。
 
 ```zsh
 ➜  gobuildsample git:(master) ✗ go build -o app -tags pro .
@@ -104,7 +103,7 @@ freeFeature#1
 freeFeature#2
 ```
 
-当两个版本时一切工作顺利，但是事情在添加第三种标签时变得更加复杂了点。
+当程序中只存在两个版本时一切工作顺利，但是事情在添加第三种标签时变得更加复杂了点。
 
 
 ## Enterprise Version
@@ -124,7 +123,7 @@ func init() {
 }
 ```
 
-还是同样的套路, 声明所需要的 `pro` 标签。
+还是同样的套路, 声明所需要的 `enter` 标签。
 
 ```zsh
 ➜  gobuildsample git:(master) ✗ go build -o app -tags 'pro enter' .
@@ -156,10 +155,10 @@ freeFeature#2
 
 当我们向文件中添加多个标签时，标签之间会进行逻辑运算。
 
-让我们重新编辑下 enterprise.go:
+让我们重新编辑下 `enterprise.go`:
 
 ```go
-➜  gobuildsample git:(master) ✗ cat enterprise.go
+➜  gobuildsample git:(master) ✗ vim enterprise.go
 // +build enter,pro
 
 package main
@@ -169,7 +168,7 @@ func init() {
 }
 ```
 
-这意味着标签之间存在的是逻辑与的关系。二者需要同时指定。
+逗号分隔 - 这意味着标签之间存在的是逻辑与的关系。二者需要同时指定。
 
 ```zsh
 ➜  gobuildsample git:(master) ✗ go build -o app -tags enter .
@@ -189,12 +188,13 @@ proFeature#1
 
 除了上面提到的逻辑与关系，还存在着其他的逻辑运算关系：
 
-Build Tag Syntax	Build Tag Sample	Boolean Statement
-Space-separated elements	// +build pro enterprise	pro OR enterprise
-Comma-separated elements	// +build pro,enterprise	pro AND enterprise
-Exclamation point elements	// +build !pro	NOT pro
+| Build Tag Syntax| 	Build Tag Sample	| Boolean Statement |
+|  ----------- |  ----------- |  ----------- |
+| Space-separated elements |	// +build pro enterprise |	pro OR enterprise |
+| Comma-separated elements |	// +build pro,enterprise |	pro AND enterprise |
+| Exclamation point elements|	// +build !pro	| NOT pro |
 
-这让构建场景变得更加灵活。
+这会让构建场景变得更加灵活。
 
 
 ## fsnotify
@@ -207,8 +207,6 @@ Exclamation point elements	// +build !pro	NOT pro
 
 
 ## Conclusion
-
-In this tutorial, you used build tags to allow you to control which of your code got compiled into the binary. First, you declared build tags and used them with go build, then you combined multiple tags with Boolean logic. You then built a program that represented the different feature sets of a Free, Pro, and Enterprise version, showing the powerful level of control that build tags can give you over your project.
 
 在本文例子中，我们使用了 `build tag` 控制哪些文件引入到构建过程。
 从声明标签到在 go build 中指定标签，然后是以布尔运算来结合运算多个标签（与是非）。
