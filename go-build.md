@@ -3,48 +3,28 @@
 
 ## Introduction
 
-In Go, a build tag, or a build constraint, is an identifier added to a piece of code that determines when the file should be included in a package during the build process. This allows you to build different versions of your Go application from the same source code and to toggle between them in a fast and organized manner. Many developers use build tags to improve the workflow of building cross-platform compatible applications, such as programs that require code changes to account for variances between different operating systems. Build tags are also used for integration testing, allowing you to quickly switch between the integrated code and the code with a mock service or stub, and for differing levels of feature sets within an application.
-
-
 Go 的构建标签决定文件是否引入构建过程。
 
-这个功能可以使开发者从是同一份源码中构建不同的应用版本，并且是以一种快速且有组织的方式。
+这个功能可以使开发者以一种快速且有组织的方式从是同一份源码中构建不同的应用版本。
 
 许多开发者使用构建标签来提升跨平台兼容应用构建的工作流。
 比如变更代码来解决不同的操作系统间的差异。
 
-Let’s take the problem of differing customer feature sets as an example. When writing some applications, you may want to control which features to include in the binary, such as an application that offers Free, Pro, and Enterprise levels. As the customer increases their subscription level in these applications, more features become unlocked and available. To solve this problem, you could maintain separate projects and try to keep them in sync with each other through the use of import statements. While this approach would work, over time it would become tedious and error prone. An alternative approach would be to use build tags.
 
-本方我们以一个不同客户功能集合作为例子。
-
-在写一些应用程序时，你可能想要控制哪一些功能来引入到二进制可执行文件中，比如一个应用提供了 Free, Pro 与 Enterprise 不同级别，随着用户提升订阅等级，就能够解锁更多的功能使其可用。
-
-为了解决这个问题，你可以维护不同的项目并且通过导入语句来保持它们之间的同步，这虽然可行，然而随着时间推移会变得冗余与易错。
-
-另外一个可行的方案是使用构建标签。
-
-In this article, you will use build tags in Go to generate different executable binaries that offer Free, Pro, and Enterprise feature sets of a sample application. Each will have a different set of features available, with the Free version being the default.
-
-
-在本方中，你将会在 Go 中使用构建标签来生成不同的可执行二进制文件，分别提供了 Free, Pro 与 Enterprise 功能集合，Free 是默认的。
+本方以一个应用示例来演示如何使用构建标签，此应用示例提供了 Free, Pro 与 Enterprise 不同级别的功能集合，在面对不同的客户时提供不同的应用版本。
 
 
 
+## Prepare & Free Version
 
-## Building the Free Version
-
-Let’s start by building the Free version of the application, as it will be the default when running go build without any build tags. Later on, we will use build tags to selectively add other parts to our program.
-
-我们通过构建 Free 版本的应用作为开始，同时也是运行 `go build` 时没有指命任意构建标签的默认版本。
-
-```golang
+```zsh
 ➜  gobuildsample pwd
 /mnt/c/Users/Linux/Desktop/code/gobuildsample
-➜  gobuildsample go mod init linuxea.com/gobuildsample
-go: creating new go.mod: module linuxea.com/gobuildsample
-➜  gobuildsample touch main.go
+➜  gobuildsample go mod init linuxea.com/app
+go: creating new go.mod: module linuxea.com/app
 ➜  gobuildsample touch feature.go
 ➜  gobuildsample touch free.go
+➜  gobuildsample touch main.go
 ```
 
 feature.go
@@ -54,8 +34,9 @@ package main
 var features []string
 ```
 
+
 free.go
-```golang
+```go
 package main
 
 func init() {
@@ -75,44 +56,33 @@ func main() {
 	for _, v := range features {
 		fmt.Println(v)
 	}
+
 }
 ```
 
-In this file, we created a program that declares a slice named features, which holds two strings that represent the features of our Free application. The main() function in the application uses a for loop to range through the features slice and print all of the features available to the screen.
 
-上述程序中，我们创建变量为切片类型的 features.
-`free.go` 使用 `init` 追加了两个字符串来代表免费的功能特性, `main.go` 通过循环打印出所有可用功能。
-
-
-Save and exit the file. Now that this file is saved, we will no longer have to edit it for the rest of the article. Instead we will use build tags to change the features of the binaries we will build from it.
-
-保存并退出文件，在剩下的时间我们不会再编辑这些基础文件，而是通过构建标签方式来改变二进制文件中的功能集合。
+代码比较简单。
+`feature.go` 文件声明了一个功能集合切片， `free.go` 通过 `init()` 来注入免费的功能特性，免费特性同时也是默认特性，不需要额外指定就能够存在于最终构建文件中，`main.go` 文件则是打印出版本的所有功能集。
 
 ```zsh
-➜  gobuildsample git:(master) ✗ go build -o main.go .
-➜  gobuildsample git:(master) ✗ ./main.go
+➜  gobuildsample git:(master) go build -o app .
+➜  gobuildsample git:(master) ✗ ./app
 freeFeature#1
 freeFeature#2
 ```
 
 
-## Adding the Pro Features 
 
-We have so far avoided making changes to main.go, simulating a common production environment in which code needs to be added without changing and possibly breaking the main code. Since we can’t edit the main.go file, we’ll need to use another mechanism for injecting more features into the features slice using build tags.
-
-Let’s create a new file called pro.go that will use an init() function to append more features to the features slice:
-
-在不改变原来文件的前提下，通过其他方式注入更多功能。
-
-我们创建一个新文件 `pro.go` 与 `init()` 函数来追加功能到切片中。
+## Pro Version
 
 ```zsh
 ➜  gobuildsample touch pro.go
 ```
 
-
 pro.go
-```golang
+```go
+// +build pro
+
 package main
 
 func init() {
@@ -120,33 +90,132 @@ func init() {
 }
 ```
 
+注意到 `pro.go` 文件首行是构建标签的声明，意味着构建过程中如果没有 pro 标签则不会引入此文件。
 
 ```zsh
-➜  gobuildsample git:(master) ✗ go build -o main .
-➜  gobuildsample git:(master) ✗ ./main
+➜  gobuildsample git:(master) ✗ go build -o app -tags pro .
+➜  gobuildsample git:(master) ✗ ./app
+freeFeature#1
+freeFeature#2
+proFeature#1
+➜  gobuildsample git:(master) ✗ go build -o app .
+➜  gobuildsample git:(master) ✗ ./app
+freeFeature#1
+freeFeature#2
+```
+
+当两个版本时一切工作顺利，但是事情在添加第三种标签时变得更加复杂了点。
+
+
+## Enterprise Version
+
+```zsh
+➜  gobuildsample touch enterprise.go
+```
+
+enterprise.go
+```go
+// +build enter
+
+package main
+
+func init() {
+        features = append(features, "enterpriseFeature#1", "enterpriseFeature#2")
+}
+```
+
+还是同样的套路, 声明所需要的 `pro` 标签。
+
+```zsh
+➜  gobuildsample git:(master) ✗ go build -o app -tags 'pro enter' .
+➜  gobuildsample git:(master) ✗ ./app
+enterpriseFeature#1
+enterpriseFeature#2
 freeFeature#1
 freeFeature#2
 proFeature#1
 ```
 
-The application now includes both the Pro and the Free features. However, this is not desirable: since there is no distinction between versions, the Free version now includes the features that are supposed to be only available in the Pro version. To fix this, you could include more code to manage the different tiers of the application, or you could use build tags to tell the Go tool chain which .go files to build and which to ignore. Let’s add build tags in the next step.
+事情依然很顺利。
+但是我们在添加构建标签时 `enter` 时，开始变得有些微妙。
 
-应用现在包含了 Pro 与 Free 两种功能。然而这还不是我们想要的：这两种版本没有区别，Free 版本拥有 Pro 才能提供的功能。
-为了进行修复，接下来使用构建标签来告诉 Go 工具链哪些 Go 文件需要构建而哪一些需要忽略。
-
-
-## Adding Build Tags
-
-You can now use build tags to distinguish the Pro version of your application from the Free version.
-
-Let’s start by examining what a build tag looks like:
-
-我们先从查看构建标签是长怎样的开始：
-
-```go
-// +build tag_name
+```zsh
+➜  gobuildsample git:(master) ✗ go build -o app -tags enter .
+➜  gobuildsample git:(master) ✗ ./app
+enterpriseFeature#1
+enterpriseFeature#2
+freeFeature#1
+freeFeature#2
 ```
 
-By putting this line of code as the first line of your package and replacing tag_name with the name of your build tag, you will tag this package as code that can be selectively included in the final binary. Let’s see this in action by adding a build tag to the pro.go file to tell the go build command to ignore it unless the tag is specified. Open up the file in your text editor:
+这在逻辑上并不行得通。当我们拥有 enter 版本时却无法拥有 pro 版本的特性，然而却能构建成功，这是不合理的。
 
-将这一行放到文件的第一行并将 tag_name 替换为你的构建标签，
+
+
+## Build Tag Boolean Logic
+
+当我们向文件中添加多个标签时，标签之间会进行逻辑运算。
+
+让我们重新编辑下 enterprise.go:
+
+```go
+➜  gobuildsample git:(master) ✗ cat enterprise.go
+// +build enter,pro
+
+package main
+
+func init() {
+        features = append(features, "enterpriseFeature#1", "enterpriseFeature#2")
+}
+```
+
+这意味着标签之间存在的是逻辑与的关系。二者需要同时指定。
+
+```zsh
+➜  gobuildsample git:(master) ✗ go build -o app -tags enter .
+➜  gobuildsample git:(master) ✗ ./app
+freeFeature#1
+freeFeature#2
+➜  gobuildsample git:(master) ✗ go build -o app -tags 'pro enter' .
+➜  gobuildsample git:(master) ✗ ./app
+enterpriseFeature#1
+enterpriseFeature#2
+freeFeature#1
+freeFeature#2
+proFeature#1
+```
+
+构建时指定所需要的全部标签时，`enterprise.go`  文件才会被引入到构建过程中。这看起来逻辑上更加合理。
+
+除了上面提到的逻辑与关系，还存在着其他的逻辑运算关系：
+
+Build Tag Syntax	Build Tag Sample	Boolean Statement
+Space-separated elements	// +build pro enterprise	pro OR enterprise
+Comma-separated elements	// +build pro,enterprise	pro AND enterprise
+Exclamation point elements	// +build !pro	NOT pro
+
+这让构建场景变得更加灵活。
+
+
+## fsnotify
+
+`fsnotify` 是一款 Go 跨平台文件系统通知工具。
+
+利用它可以打造出简单的配置文件实时更新服务。
+
+能够在不同操作系统上监听文件的变更，其在内部就使用了构建标签来解决不同操作系统所带来的差异。
+
+
+## Conclusion
+
+In this tutorial, you used build tags to allow you to control which of your code got compiled into the binary. First, you declared build tags and used them with go build, then you combined multiple tags with Boolean logic. You then built a program that represented the different feature sets of a Free, Pro, and Enterprise version, showing the powerful level of control that build tags can give you over your project.
+
+在本文例子中，我们使用了 `build tag` 控制哪些文件引入到构建过程。
+从声明标签到在 go build 中指定标签，然后是以布尔运算来结合运算多个标签（与是非）。
+构建标签可以为您提供对项目的强大控制级别。
+
+
+## 参考
+
+- [1] [Customizing Go Binaries with Build Tags](https://www.digitalocean.com/community/tutorials/customizing-go-binaries-with-build-tags)
+- [2] [fsnotify](https://github.com/fsnotify/fsnotify)
