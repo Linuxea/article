@@ -91,5 +91,62 @@ Changes to be committed:
 
 检查子模块的状态是简单的：
 ```zsh
-
+➜  sdk git:(master) git submodule status
+ 482fb8b4768049cfae8726ce3f4f7bf7cbe00776 compiler (heads/master)
 ```
+
+The commit reference that’s listed for compiler is the most recent commit for that repository’s primary branch. In this way, git submodules are just links from one repository to the next with the added benefit that the source code for each repository is easily accessed and shared.
+
+打印出来的是 compiler 子模块的主分支上最新的一个 commit.
+
+通过这种方式，git submodules 只是从一个存储库到下一个存储库的链接，具有额外的好处是每个存储库的源代码都易于访问和共享。
+
+
+### Working with Git Submodules
+
+By default, any basic git commands are only ran with respect to the repository that you are currently in. So if you make changes in the sdk repo (but outside the compiler repo), then git will only show you those differences in sdk. Pulling, pushing, committing etc. are all performed only with regards to the repo you are currently in.
+
+根据默认配置，任何基本的 git 命令仅在当前所在的仓库环境下运行。
+
+所以假如你在 sdk 目录之下（compiler 目录之外）作出更改，git status 仅仅会展示 sdk 的不同, 同理 git pull, push, commit 等等仅针对你当前所在的存储库执行操作。
+
+If you want to run a command such as git pull across all of the submodules in your project, you‘d run git pull --recurse-submodules from sdk. This would pull any changes made to sdk as well as pulling new changes from the branch each of your submodules are currently on. If your submodules had submodules, the process would continue until all are updated. To automatically pull submodules whenever you run git pull, you can run git config submodule.recurse true.
+
+如果你想要在项目中的所有子模块运行命令，例如 git pull, 你可以从 sdk 运行 `git pull --recurse-submodules`.
+
+这将拉取对 sdk 以及从每个子模块当前所在的分支中拉取新的更改。
+
+如果子模块也拥有其子模块，这个过程会一直进行直到完成所有的更新。
+
+为了命令的简洁以及自动拉取子模块，你可以通过运行命令 git config submodule.recurse true 来更改配置。
+```zsh
+➜  sdk git:(master) git config submodule.recurse true 
+➜  sdk git:(master) git config -l | cat
+user.name=linuxea
+user.email=linuxea@foxmail.com
+core.repositoryformatversion=0
+core.filemode=true
+core.bare=false
+core.logallrefupdates=true
+submodule.compiler.url=git@github.com:Linuxea/compiler.git
+submodule.compiler.active=true
+submodule.recurse=true
+➜  sdk git:(master) git pull
+Fetching submodule compiler
+... ...
+```
+
+
+For running more general commands across your submodules, use the foreach term to loop over each of them. Example:
+
+为了在子模块运行常规命令，使用 foreach 迭代：
+```zsh
+➜  sdk git:(master) git submodule foreach ls
+Entering 'compiler'
+README.md
+➜  sdk git:(master) 
+```
+
+
+
+### Tracking submodule commit references
