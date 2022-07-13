@@ -24,8 +24,72 @@ Git submodules 简单来讲只是对另外仓库的引用。
 如果你想要同时对 sdk 及子项目作为变更，那么 git submodules 可以在此时作为一个工具选项。
 
 
+This article will feature some of the key characteristics of git submodules including how to create them, basic functionality as well as a summary of their key highlights at the end.
+
+
+本文会提到 git submodules 的关键特性，包含如何创建，基本功能，以及最后会提到主要亮点总结。
 
 
 
+### Adding Git Submodules to a New Project
+
+It’s easy enough to add submodules to an existing git repository, but there are a few things to be aware of. 
+
+Let’s start off with creating a simple project sdk that has the single file README.md as well as git tracking.
+
+我们从创建一个简单的项目 sdk 开始，它包含一个 README.md 文件以及 git 目录。
+
+```zsh
+➜  ~ pwd
+/home/linuxea
+➜  ~ mkdir sdk
+➜  ~ cd sdk 
+➜  sdk git init
+Initialized empty Git repository in /home/linuxea/sdk/.git/
+➜  sdk git:(master) touch README.md 
+➜  sdk git:(master) ✗ git add .
+➜  sdk git:(master) ✗ git commit -m "init sdk project"
+[master (root-commit) 2693bab] init sdk project
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 README.md
+```
 
 
+Now, let’s say that we have another repository that already has a remote origin in GitHub. We can easily add the submodule to our sdk repo like so:
+
+我们在远程 GitHub 已经准备了另外一个现成仓库，现在我们可以轻易地向 sdk 仓库添加此子模块：
+```zsh
+➜  sdk git:(master) git submodule add git@github.com:Linuxea/compiler.git        
+Cloning into '/home/linuxea/sdk/compiler'...
+remote: Enumerating objects: 3, done.
+remote: Counting objects: 100% (3/3), done.
+remote: Total 3 (delta 0), reused 3 (delta 0), pack-reused 0
+Receiving objects: 100% (3/3), done.
+```
+
+We will now have the compiler repository within sdk along with the .gitmodules file. This file just has basic information on our submodules such as their name, path, url etc. You’ll need to add and commit these new files before reaching a clean git state again. Checking the state of our submodules is easy.
+
+现在我们在 sdk 仓库下拥有 compiler 仓库以及 .submodules 文件。
+
+.submodules 仅仅记录了我们所拥有的子模块的基本信息，如：名称，路径与 url 等。
+
+在重新得到一个干净的 git 状态之前，我们需要 add 和 commit 这些新文件。
+```zsh
+➜  sdk git:(master) ✗ git status
+On branch master
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	new file:   .gitmodules
+	new file:   compiler
+
+➜  sdk git:(master) ✗ git commit -m "add submodule compiler"
+[master 883ee91] add submodule compiler
+ 2 files changed, 4 insertions(+)
+ create mode 100644 .gitmodules
+ create mode 160000 compiler
+```
+
+检查子模块的状态是简单的：
+```zsh
+
+```
