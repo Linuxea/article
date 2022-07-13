@@ -269,3 +269,10 @@ The submodule update mechanism doesn’t get rid of obsolete submodules
 
 #### 需要更多的考虑
 - 引入额外的版本控制复杂度
+
+
+
+## 参考
+
+- [1] [7.11 Git Tools - Submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules)
+- [2] [An Intro to Git-Submodules](https://medium.com/gitconnected/an-intro-to-git-submodules-9f49523281fb)
