@@ -150,3 +150,94 @@ README.md
 
 
 ### Tracking submodule commit references
+
+Let’s say you make changes to one of the submodules of sdk. You add and commit your changes, and then go back to the root of sdk. If you run git status, you’ll see the following:
+
+现在我们对 sdk 的一个子模块做出变更，添加以及提交，然后回到 sdk 根目录下运行 git status, 你会看到如下信息：
+```zsh
+➜  sdk git:(master) cd compiler 
+➜  compiler git:(master) touch JIT   
+➜  compiler git:(master) ✗ git add .
+➜  compiler git:(master) ✗ git commit -m "add JIT" 
+[master 185844e] add JIT
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 JIT
+➜  compiler git:(master) cd ..
+➜  sdk git:(master) ✗ git status
+On branch master
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   compiler (new commits)
+
+no changes added to commit (use "git add" and/or "git commit -a")
+```
+
+
+Git is now telling you that the current commit in one of your submodules is different from your previous state. You’ll need to add the changed submodules to git tracking, and then commit the updates where your message could be “updated submodule versions”. A very common mistake is to push the wrong submodule references, so it’s important to keep track of what commit/branch you want each submodule pointing to.
+
+
+Git 现在告诉你的是当前 sdk 的子模块状态变更了，你需要添加子模块的变更到 git 追踪并进行提交。
+```zsh
+➜  sdk git:(master) ✗ git add .
+➜  sdk git:(master) ✗ git commit -m "update compiler to add JIT"
+[master bb53126] update compiler to add JIT
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+➜  sdk git:(master) git status
+On branch master
+nothing to commit, working tree clean
+```
+
+
+### Cloning a project including its submodules
+
+When you pull down a git repository that has submodules, you won’t pull the submodules by default. If the sdk project was publicly hosted on GitHub, and you cloned the sdk project to your own machine, you wouldn’t get any of its subprojects. You’ll get the folder reference, but nothing else.
+
+当你拉取一个拥有子模块的仓库时，默认是不会拉取子模块目录。你得到除了目录引用，除此之外没有额外内容。
+```zsh
+➜  temp git clone git@github.com:Linuxea/sdk.git
+Cloning into 'sdk'...
+remote: Enumerating objects: 8, done.
+remote: Counting objects: 100% (8/8), done.
+remote: Compressing objects: 100% (5/5), done.
+remote: Total 8 (delta 1), reused 8 (delta 1), pack-reused 0
+Receiving objects: 100% (8/8), done.
+Resolving deltas: 100% (1/1), done.
+➜  temp cd sdk 
+➜  sdk git:(master) ls
+compiler  README.md
+➜  sdk git:(master) ls -alh compiler 
+total 8.0K
+drwxrwxr-x 2 linuxea linuxea 4.0K Jul 14 01:00 .
+drwxrwxr-x 4 linuxea linuxea 4.0K Jul 14 01:00 ..
+```
+
+To clone the project including all the files for its submodules, you could either clone with the --recurse-submodules flag, or after you clone sdk you can run git submodule update --init. Both will accomplish the task of pulling down all relevant files.
+
+为了克隆包括子模块所有文件的项目仓库
+- 你可以使用 `--recurse-submodules` 标识，
+- 可以在克隆 sdk 后运行 `git submodule update --init`
+
+以上两种方式都能实现拉取所有关联文件的任务。
+
+紧接上面的实验，我们使用第二种方式:
+```zsh
+➜  sdk git:(master) ls -alh compiler
+total 8.0K
+drwxrwxr-x 2 linuxea linuxea 4.0K Jul 14 01:00 .
+drwxrwxr-x 4 linuxea linuxea 4.0K Jul 14 01:00 ..
+➜  sdk git:(master) 
+➜  sdk git:(master) git submodule update --init 
+Submodule 'compiler' (git@github.com:Linuxea/compiler.git) registered for path 'compiler'
+Cloning into '/home/linuxea/temp/sdk/compiler'...
+Submodule path 'compiler': checked out '185844e0670c65b13b7ebc06353bb301c0ac0e3f'
+➜  sdk git:(master) 
+➜  sdk git:(master) ls -alh compiler
+total 12K
+drwxrwxr-x 2 linuxea linuxea 4.0K Jul 14 01:04 .
+drwxrwxr-x 4 linuxea linuxea 4.0K Jul 14 01:00 ..
+-rw-rw-r-- 1 linuxea linuxea   33 Jul 14 01:04 .git
+-rw-rw-r-- 1 linuxea linuxea    0 Jul 14 01:04 JIT
+-rw-rw-r-- 1 linuxea linuxea    0 Jul 14 01:04 README.md
+```
+
