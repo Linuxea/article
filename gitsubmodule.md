@@ -241,3 +241,31 @@ drwxrwxr-x 4 linuxea linuxea 4.0K Jul 14 01:00 ..
 -rw-rw-r-- 1 linuxea linuxea    0 Jul 14 01:04 README.md
 ```
 
+### Git Submodules Highlights
+
+As you can see, git submodules are different than your average package manager. They allow you to link to git repositories, but still treat them as individual projects. Git submodules have actually received a fair amount of negative feedback in the past, but I think it’s most important to be objective about what submodules offer and if they’re right for your next project.
+
+如你所见的是，git submodules 有别于常规的包管理。
+
+它允许你链接其他仓库，但仍然可视它们为个体独立的项目。
+
+事实上 Git Submodules 在过去的时间中收到了一个公平的正向反馈，不过更重要的是客观地看待 git submodules 以及它是否适用于你将来的项目。
+
+Allows git repositories to be linked for easy access
+Commands can be run across multiple repositories at once
+Repository versions can be maintained with high precision
+Version tracking in general becomes much more descriptive
+Source code can be shared between repositories
+Distribute many repositories as one
+
+- 在 git 仓库之间建立链接来容易访问
+- 跨越多个子模块来同时执行命令
+- 精准且密切维护仓库版本
+- 将多个仓库视为一个分发
+
+A few things to consider
+Additional version control complexity can increase mistakes
+The submodule update mechanism doesn’t get rid of obsolete submodules
+
+#### 需要更多的考虑
+- 引入额外的版本控制复杂度
