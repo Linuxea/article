@@ -40,3 +40,39 @@ This anyway introduce a new problem: what if we want to keep a reference to an o
 
 ## The solution
 
+所有开发者对 Java 中的强引用已经很熟悉了，今天就来介绍其他主角：
+
+SoftReference Soft reference objects, which are cleared at the discretion of the garbage collector in response to memory demand. Soft references are most often used to implement memory-sensitive caches. [..]
+All soft references to softly-reachable objects are guaranteed to have been cleared before the virtual machine throws an OutOfMemoryError.
+
+
+SoftReference: 软引用，由垃圾收集器根据内存需求酌情清除。经常在内存敏感的场景作为缓存使用。[...]
+在虚拟机抛出 OOM 错误前，可以保证所有的软引用关联对象都被清除。
+
+
+WeakReference Weak reference objects, which do not prevent their referents from being made finalizable, finalized, and then reclaimed. Weak references are most often used to implement canonicalizing mappings. [Here Canonicalizing mappings means mapping only reachable object instances.]
+
+WeakReference: 弱引用，不阻止弱引用关联对象被标记为 finalizable, 被 finalized 以及回收。弱引用经常被用于映射只可达对象实例。
+
+
+PhantomReference Phantom reference objects, which are enqueued after the collector determines that their referents may otherwise be reclaimed. Phantom references are most often used for scheduling pre-mortem cleanup actions in a more flexible way than is possible with the Java finalization mechanism.[..]
+Unlike soft and weak references, phantom references are not automatically cleared by the garbage collector as they are enqueued. An object that is reachable via phantom references will remain so until all such references are cleared or themselves become unreachable.
+
+PhantomReference 虚引用，在确实虚引用关系对象可以被回收时，会将其进行入队操作。虚引用经常被用在比 Java finalization 机制更加灵活的事前清理工作。
+与软引用和弱引用不同，虚引用在排队时不会被垃圾收集器自动清除。 通过虚引用可访问的对象将保持此状态(null)，直到所有此类引用都被清除或它们自身变得不可访问为止。
+
+So in brief: Soft references try to keep the reference. Weak references don’t try to keep the reference. Phantom references don’t free the reference until cleared.
+
+所以简单来讲：软引用试图保持关联关系，弱引用不尝试保持关联关系，虚引用在完成事前清理工作前不会被释放。
+
+再次引用之前的例子：
+a SoftReference is like a customer that say: I’ll leave my table only when there are no other tables avalaible. A WeakReference is like someone ready to leave as soon as a new customer arrives. A PhantomReference is like someone ready to leave as soon as a new customer arrives, but actually not leaving until the manager gives him permission.
+
+软件引用就像一位用餐顾客，在没有其他可用的桌子后再离开餐厅。
+弱引用就像只要有新顾客来就离开餐厅。
+虚引用就像只要有新顾客来就离开餐厅，但前提是必须得到餐厅经理的同意。
+
+
+
+## The Code
+
