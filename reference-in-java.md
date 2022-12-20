@@ -76,3 +76,188 @@ a SoftReference is like a customer that say: I’ll leave my table only when the
 
 ## The Code
 
+先尝试创建一个实体对象，用来作为各种关联的实体：
+```java
+public class Person {
+
+  public Person(Integer id, String name, Integer age) {
+    this.id = id;
+    this.name = name;
+    this.age = age;
+  }
+
+  Integer id;
+
+  String name;
+
+  Integer age;
+
+
+  @Override
+  public String toString() {
+    return "Person{" +
+        "id=" + id +
+        ", name='" + name + '\'' +
+        ", age=" + age +
+        '}';
+  }
+}
+```
+
+
+### SoftReference
+```java
+package com.linuxea.reference;
+
+import java.lang.ref.SoftReference;
+import java.util.LinkedList;
+import java.util.List;
+
+/**
+ * 软引用
+ */
+public class SoftReferencePerson extends SoftReference<Person> {
+
+  public SoftReferencePerson(Person referent) {
+    super(referent);
+  }
+
+  public static void main(String[] args){
+    SoftReferencePerson softReferencePerson = new SoftReferencePerson(new Person(0, "linuxea", 18));
+
+    /* Force releasing SoftReferences */
+    try {
+      final List<long[]> list = new LinkedList<>();
+      while(true) {
+        list.add(new long[102400]);
+      }
+    }
+    catch(final OutOfMemoryError e) {
+      /* At this point all SoftReferences have been released - GUARANTEED. */
+    }
+
+    Person person = softReferencePerson.get();
+    System.out.println(person);
+
+
+  }
+}
+```
+```console
+Person{id=0, name='linuxea', age=18}
+null
+```
+
+通过创建一个关联 `Person` 对象的软引用，在手动触发 `OOM` 的前后打印通过 `softReferencePerson` 获取到的结果。
+可以看到 OOM 之前软引用的值已经为 null。
+
+
+### WeakReference
+```java
+package com.linuxea.reference;
+
+import java.lang.ref.WeakReference;
+
+/**
+ * 弱引用
+ */
+public class WeakReferencePerson extends WeakReference<Person> {
+
+  public WeakReferencePerson(Person referent) {
+    super(referent);
+  }
+
+  public static void main(String[] args){
+    WeakReferencePerson softReferencePerson = new WeakReferencePerson(new Person(0, "linuxea", 18));
+    System.out.println(softReferencePerson.get());
+    System.gc();
+    Person person = softReferencePerson.get();
+    System.out.println(person);
+  }
+}
+```
+```console
+Person{id=0, name='linuxea', age=18}
+null
+```
+
+弱引用对象在下一轮的 GC 触发后将会被回收。
+
+> Calling the gc method suggests that the Java Virtual Machine expend effort toward recycling unused objects in order to make the memory they currently occupy available for quick reuse.
+
+```java
+package com.linuxea.reference;
+
+import java.lang.ref.PhantomReference;
+import java.lang.ref.ReferenceQueue;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * 虚引用
+ */
+public class PhantomReferencePerson extends PhantomReference<Person> implements Runnable {
+
+
+  private final ReferenceQueue<Person> q;
+  private final Integer personId;
+
+  public PhantomReferencePerson(Person referent, ReferenceQueue<Person> q) {
+    super(referent, q);
+    this.q = q;
+    this.personId = referent.id;
+    new Thread(this).start(); //start a thread to listen queue
+  }
+
+
+  @Override
+  public void run() {
+    while(true) {
+      try {
+        // 当虚引用关系对象时回收会有通知 
+        // 在 Java 9 之后，虚引用对象在入队之前就被清除了（就像其他类型的弱/软引用一样），被应用程序代码处理之前，引用对象本身已经完全死亡，这是“事后清理”
+        PhantomReferencePerson reference = (PhantomReferencePerson)this.q.remove();
+        // 得到通知完成一些清洁后续工作
+        reference.cleanUp();
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
+  private void cleanUp() {
+    System.out.println(this.personId + " is over");
+    // do some clean up
+  }
+
+
+
+  public static void main(String[] args) throws InterruptedException {
+    PhantomReferencePerson softReferencePerson = new PhantomReferencePerson(new Person(0, "linuxea", 18),
+        new ReferenceQueue<>());
+    // 虚引用关联对象永远不可达，因此 get 方法永远返回 null
+    System.out.println(softReferencePerson.get());
+
+    // never end
+    TimeUnit.SECONDS.sleep(1000);
+  }
+}
+
+```
+同弱引用一样，如果未标记引用对象，则始终虚引用。
+这一次，我们在启动 `main` 后，借用 `jvisualvm` 来触发 `GC`.
+
+```console
+null
+0 is over
+```
+`PhantomReferencePerson` 的 `cleanUp` 被触发了。这是因为构造函数中的引用队列有了数据。
+请记住，`object.finalize()` 方法不能保证在对象生命结束时被调用，因此如果您需要关闭文件或释放资源，您可以依赖 `PhantomReference`。 
+由于 `PhantomReference` 没有指向实际对象的链接，因此典型的模式是从 `PhantomReference` 派生您自己的引用类型 `PhantomReferencePerson` 并添加一些有用的信息，例如例子中的 `personId`。
+
+
+
+
+
+
+
+
