@@ -44,6 +44,8 @@ jdk1.5 引入的 `Future` 代表异步计算的结果。
 CompletableFuture<String> completableFuture = new CompletableFuture<>();
 ```
 
+> 1. 支持手动完成任务
+
 设置超时返回默认值的形式来终止任务
 ```java
 completableFuture.completeOnTimeout("default", 3, TimeUnit.SECONDS);
@@ -53,8 +55,6 @@ join 会阻塞直到任务完成
 ```java
 completableFuture.join();
 ```
-
-通过这种方式就可以实现手动完成任务
 
 
 ## Running asynchronous computation using runAsync()
@@ -95,6 +95,8 @@ CompletableFuture.supplyAsync(() -> 1);
 对此，`CompletableFuture` 提供了回调机制来构造异步系统。
 
 我们不需要等待任务完成，只需要在回调函数中完成编写任务结果的处理逻辑。
+
+> 2.非阻塞式方式继续执行下一个任务
 
 你可以使用 `thenApply()`、`thenAccept()` 和 `thenRun()` 方法将回调方法附加到 `CompletableFuture`
 
@@ -156,4 +158,65 @@ CompletableFuture.supplyAsync(() -> "linuxea") // 任务结果返回 linuxea 字
 
 
 ## Combining two CompletableFutures together
+
+### thenCompose()
+
+将有依赖关系的任务通过 `thenCompose()` 组合起来
+
+```java
+public CompletableFuture<String> getUserName(Long uid) {
+    //忽略参数直接返回用户名
+    return CompletableFuture.supplyAsync(() -> "linuxea");
+  }
+
+  public CompletableFuture<String> getIDCard(String userName) {
+    //忽略参数直接返回 id card
+    return CompletableFuture.supplyAsync(() -> "1234567890");
+  }
+```
+
+使用 `thenCompose(CompletableFuture)` 组合两个 `CompletableFuture`
+```java
+getUserName(uid).thenCompose(this::getIDCard).join()
+```
+
+如果使用上面提到的 `thenApply()` 会有什么不同吗。同样是把一个结果映射为另外一个结果。
+
+```java
+CompletableFuture<CompletableFuture<String>> completableFutureCompletableFuture = this.getUserName(uid).thenApply(this::getIDCard);
+```
+
+我们返回的是一个 `CompletableFuture` 嵌入 `CompletableFuture`。
+如果我们想要一个扁平化的 `CompletableFuture`那使用 `thenCompose`。
+
+### thenCombine()
+
+`thenCompose()` 整合了具有依赖关系的 `CompletableFuture`。
+
+`thenCombine()` 是将两个独立的 `CompletableFuture` 并行处理并在各自任务时进行整合。
+
+```java
+//取姓名 future
+CompletableFuture<String> name = CompletableFuture.supplyAsync(() -> "linuxea");
+//取年龄 future
+CompletableFuture<Integer> age = CompletableFuture.supplyAsync(() -> 18);
+
+// combine two independent future
+name.thenCombine(age, (nameResult, ageResult) -> nameResult + "is age is " + ageResult).join();
+//or 
+age.thenCombine(name, (nameResult, ageResult) -> nameResult + "is age is " + ageResult).join();
+```
+
+当两个 `CompletableFuture` 都完成时，将调用传递给 `thenCombine()` 的回调函数。
+
+
+## Combining multiple CompletableFutures together
+
+We used thenCompose() and thenCombine() to combine two CompletableFutures together. Now, what if you want to combine an arbitrary number of CompletableFutures? Well, you can use the following methods to combine any number of CompletableFutures -
+
+我们使用 `thenComponse()` 与 `thenCombine()` 来合并两个 `CompletableFutures`。
+
+如果我们想要合并任意数量的 `CompletableFutures` 呢？
+
+好吧。你可以使用如下方法来实现：
 
