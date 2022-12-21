@@ -430,8 +430,13 @@ Thank you for reading. I hope this blog post was helpful to you. Let me know you
 ## Conclusion
 
 在上述示例中，介绍了 `CompletableFuture` 部分重要且有用的概念。
-还有部分异步 `API` 没有介绍到，比如转换时以异步方式处理有 `thenApplyAsync`，`thenAcceptAsync`，`thenRunAsync` 等
-以及背后所涉及使用到的线程池。
+还有部分异步 `API` 没有介绍到，比如转换时以异步方式处理有 `thenApplyAsync`，`thenAcceptAsync`，`thenRunAsync` 以及背后所涉及使用到的线程池。以及获取结果时 `join` 与 `get` 的一些细小区别。
 
+
+## 参考
+
+- [1] [Java CompletableFuture Tutorial with Examples](https://www.callicoder.com/java-8-completablefuture-tutorial/#combining-multiple-completablefutures-together)
+- [2] [CompletableFuture<T> class: join() vs get()](https://stackoverflow.com/questions/45490316/completablefuturet-class-join-vs-get)
+- [3] [CompletableFuture in Java Simplified](https://medium.com/javarevisited/completablefuture-usage-and-best-practises-4285c4ceaad4)
 
 
