@@ -96,8 +96,6 @@ CompletableFuture.supplyAsync(() -> 1);
 
 我们不需要等待任务完成，只需要在回调函数中完成编写任务结果的处理逻辑。
 
-> 2.非阻塞式方式继续执行下一个任务
-
 你可以使用 `thenApply()`、`thenAccept()` 和 `thenRun()` 方法将回调方法附加到 `CompletableFuture`
 
 
@@ -219,4 +217,221 @@ We used thenCompose() and thenCombine() to combine two CompletableFutures togeth
 如果我们想要合并任意数量的 `CompletableFutures` 呢？
 
 好吧。你可以使用如下方法来实现：
+
+```java
+public static CompletableFuture<Void> allOf(CompletableFuture<?>... cfs)
+public static CompletableFuture<Object> anyOf(CompletableFuture<?>... cfs)
+```
+
+###  allOf
+
+`allOf` 使用场景是在并行完成一系列独立的 `CompletableFuture` 后，你可以实现后续处理。
+
+```java
+//随便找几个网站
+List<String> urls = new ArrayList<>(){{
+    add( "https://www.zhihu.com/question/571018901/answer/2793033135");
+    add("https://www.zhihu.com/question/308641794/answer/2809281113");
+    add("https://www.zhihu.com/question/340109086/answer/2774107425");
+    add("https://zhuanlan.zhihu.com/p/86351416");
+    add("https://www.zhihu.com/question/557506449/answer/2707643182");
+    add("https://www.zhihu.com/question/30196513/answer/2806480067");
+}};
+    
+
+// 根据每个网页生成各自的爬取任务 CompletableFuture
+List<CompletableFuture<String>> futures = urls.stream()
+    .map(url -> CompletableFuture.supplyAsync(() -> this.fetchNet(url)))
+    .collect(Collectors.toList());
+
+// allOf 返回的是 CompletableFuture<Void>
+CompletableFuture<Void> allOf = CompletableFuture.allOf(
+    futures.toArray(CompletableFuture[]::new));
+
+//调 allOf CompletableFuture 直到所有的任务都完成
+allOf.join();
+
+//调用每个子 CompletableFuture 获取任务结果
+return futures.stream().map(CompletableFuture::join).collect(Collectors.toList());
+
+
+// 根据 url 进行网页爬取的方法
+public String fetchNet(String url){
+    HttpRequest request = HttpRequest.newBuilder()
+        .uri(new URI(url))
+        .GET()
+        .timeout(Duration.of(3, SECONDS))
+        .build();
+    HttpResponse<String> response = HttpClient.newHttpClient().send(request, BodyHandlers.ofString());
+    return response.body();
+}
+```
+
+
+### anyOf
+
+CompletableFuture.anyOf() as the name suggests, returns a new CompletableFuture which is completed when any of the given CompletableFutures complete, with the same result.
+
+`CompletableFuture.anyOf()` 如字面上意思，在给定的多个 `CompletableFutures` 中任一完成时返回一个同样结果的新的 `CompletableFuture`。
+
+
+修改上述部分代码
+
+```java
+// anyOf
+CompletableFuture<Object> anyOf = CompletableFuture.anyOf(futures.toArray(CompletableFuture[]::new));
+// 等待直到返回第一个也是唯一一个任务结果
+anyOf.join();
+```
+
+`anyOf()` 的问题在于如果给定的多个 `CompletableFutures` 拥有不同的返回类型，那就不知道最终的 `anyOf()` 结果类型是什么。
+```java
+CompletableFuture<Object> diffTypeCompletableFutures = CompletableFuture.anyOf(
+        CompletableFuture.supplyAsync(() -> "abc"), CompletableFuture.supplyAsync(() -> 1));
+// what type am i?
+Object join = diffTypeCompletableFutures.join();
+```
+
+
+## CompletableFuture Exception Handling
+
+We explored How to create CompletableFuture, transform them, and combine multiple CompletableFutures. Now let’s understand what to do when anything goes wrong.
+
+我们已经探索了如何创建 `CompletableFuture`, 以及转化结果，合并多个 `CompletableFutures` 的方法。
+
+现在我们来了解下当事情出现异常时该做什么。
+
+Let’s first understand how errors are propagated in a callback chain. Consider the following CompletableFuture callback chain -
+
+我们首先明白错误在回调链是如何传播的。先考虑如下代码：
+```java
+CompletableFuture.supplyAsync(() -> {
+	// Code which might throw an exception
+	return "Some result";
+}).thenApply(result -> {
+	return "processed result";
+}).thenApply(result -> {
+	return "result after further processing";
+}).thenAccept(result -> {
+	// do something with the final result
+});
+```
+
+If an error occurs in the original supplyAsync() task, then none of the thenApply() callbacks will be called and future will be resolved with the exception occurred. If an error occurs in first thenApply() callback then 2nd and 3rd callbacks won’t be called and the future will be resolved with the exception occurred, and so on.
+
+创建一个 `Future` 时，如果异常发生在一开始的 `supplyAsync()` 阶段，那没有任何一个 `thenApply()` 回调逻辑被调用，同时 `future` 将面临处理这个异常。
+
+如果异常出现在第一个 `thenApply()`, 那么第二跟第三个 `thenApply()` 将不会触发回调，同样 `future` 将面临处理这个异常。
+
+以此类推。
+
+
+### 1. Handle exceptions using exceptionally() callback
+
+The exceptionally() callback gives you a chance to recover from errors generated from the original Future. You can log the exception here and return a default value.
+
+
+```java
+/**
+    * Returns a new CompletableFuture that is completed when this
+    * CompletableFuture completes, with the result of the given
+    * function of the exception triggering this CompletableFuture's
+    * completion when it completes exceptionally; otherwise, if this
+    * CompletableFuture completes normally, then the returned
+    * CompletableFuture also completes normally with the same value.
+    * Note: More flexible versions of this functionality are
+    * available using methods {@code whenComplete} and {@code handle}.
+    *
+    * @param fn the function to use to compute the value of the
+    * returned CompletableFuture if this CompletableFuture completed
+    * exceptionally
+    * @return the new CompletableFuture
+    */
+public CompletableFuture<T> exceptionally(
+    Function<Throwable, ? extends T> fn) {
+    return uniExceptionallyStage(fn);
+}
+```
+
+`exceptionally` 在上一步给定的函数触发异常时返回新的 `CompletableFuture`。
+否则返回跟上一步相同值的 `CompletableFuture`。
+
+定义一个 `IntSupplier` 实例, 实际触发异常。
+```java
+Supplier<Integer> supplier = () -> {throw new RuntimeException("error is me");};
+```
+
+```java
+CompletableFuture.supplyAsync(supplier)
+    .exceptionally(throwable -> {
+        // log
+        System.out.println("something wrong happens" + throwable.getMessage());
+        // default value
+        return -1;
+    })
+    .thenApply(integer -> integer / 0)
+    .exceptionally(throwable -> {
+        // log
+        System.out.println("something wrong happens again" + throwable.getMessage());
+        // default value
+        return -2;
+    })
+    .join();
+```
+
+一旦处理了对应的异常就不会在回调链上继续传播。
+最终结果如下：
+```console
+something wrong happensjava.lang.RuntimeException: error is me
+something wrong happens againjava.lang.ArithmeticException: / by zero
+-2
+```
+
+### 2. Handle exceptions using the consumer whenComplete method
+
+对异常的具体处理可以使用 `whenComplete()`, 它的参数是 `BiConsumer<? super T, ? super Throwable>`，
+通过上一步的结果与异常实现相应的消费逻辑。它不具备更改结果值的 `handle` 能力。
+
+```java
+Supplier<String > supplier = () -> { throw new RuntimeException("error is me");};
+CompletableFuture.supplyAsync(supplier)
+    .whenComplete((s, throwable) -> {
+        System.out.println("has a error ?:" + (throwable != null));
+        System.out.println("future result is " + s);
+    })
+    .exceptionally(throwable -> "default");
+```
+
+
+### 3. Handle exceptions using the generic handle() method
+
+相比之下，`handle()` 是对付异常更加通用的处理方式。
+
+```java
+Supplier<String > supplier = () -> { throw new RuntimeException("error is me");};
+CompletableFuture.supplyAsync(supplier)
+    .handle(((s, throwable) -> {
+        if(throwable != null) {
+        System.out.println("error occurs" + throwable.getMessage());
+        return "error";
+        }
+        return s;
+    })).join();
+```
+
+
+
+Conclusion
+Congratulations folks! In this tutorial, we explored the most useful and important concepts of CompletableFuture API.
+
+Thank you for reading. I hope this blog post was helpful to you. Let me know your views, questions, comments in the comment section below.
+
+
+## Conclusion
+
+在上述示例中，介绍了 `CompletableFuture` 部分重要且有用的概念。
+还有部分异步 `API` 没有介绍到，比如转换时以异步方式处理有 `thenApplyAsync`，`thenAcceptAsync`，`thenRunAsync` 等
+以及背后所涉及使用到的线程池。
+
+
 
