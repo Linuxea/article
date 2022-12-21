@@ -1,5 +1,3 @@
-<!-- # Introduction In CompletableFuture -->
-
 > Java 1.8 带来了如 `Lambda` 表达式，`Stream` 等丰富的功能，除此之外，还有  `CompletableFuture`
 
 
