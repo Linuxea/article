@@ -83,7 +83,77 @@ CompletableFuture.runAsync(() -> {
 CompletableFuture.supplyAsync(() -> 1);
 ```
 
+> `Supplier<T>` 是最常用的函数式接口之一， 用来提供使用者一个类型为 `T` 的值
 
 
+## Transforming and acting on a CompletableFuture
 
+直接使用 `get` 或者 `join` 会阻塞当前线程直到任务完成。
+
+但这是我们想要的吗。
+
+对此，`CompletableFuture` 提供了回调机制来构造异步系统。
+
+我们不需要等待任务完成，只需要在回调函数中完成编写任务结果的处理逻辑。
+
+你可以使用 `thenApply()`、`thenAccept()` 和 `thenRun()` 方法将回调方法附加到 `CompletableFuture`
+
+
+### thenApply()
+
+使用 `thenApply()` 处理任务结果并进行转化。
+
+It takes a Function<T,R> as an argument. Function<T,R> is a simple functional interface representing a function that accepts an argument of type T and produces a result of type R -
+
+它使用了 `Function<T,R>` 作为参数。
+
+> Function<T,R> 也是最常用的函数式接口之一，用来对类型为 T 的输入参数进行转换为类型为 R 的输出结果
+
+```java
+// 将任务结果 linuxea 转化为对其求字符串长度
+CompletableFuture.supplyAsync(() -> "linuxea").thenApply(String::length).join()
+```
+
+可以通过附加多个 `thenApply()` 方法来编写一系列转换。上一个 `thenApply()` 的结果会传递给下一个 `thenApply()`。
+
+```java
+CompletableFuture.supplyAsync(() -> "linuxea") // 任务结果返回 linuxea 字符串
+        .thenApply(String::length) // 对任务结果取字符串长度
+        .thenApply(length -> length > 5) // 判断长度是否大于 5
+        .thenApply(String::valueOf) // 将 Boolean 转化成字符串形式
+        .join();
+```
+
+## thenAccept() and thenRun()
+
+与 `thenApply()` 相比，如果你不想从回调中返回任务结果，而只是想运行借由上一个任务的结果完成一些代码逻辑，`thenAccept()` 是你的选择。
+
+`thenAccept()` 参数是一个 `Consumer<T>`。
+
+```java
+CompletableFuture.supplyAsync(() -> "linuxea") // 任务结果返回 linuxea 字符串
+        .thenAccept(System.out::println) // 直接把任务结果进行打印
+    ;
+```
+
+> `Consumer<T>` 也是最常用的函数式接口之一，对类型为 T 的参数进行消费且不返回任何结果值
+
+
+If you don’t want to return anything from your callback function and just want to run some piece of code after the completion of the Future, then you can use thenAccept() and thenRun() methods. These methods are consumers and are often used as the last callback in the callback chain.
+
+
+与 `thenAccept()` 相似的是 `thenRun()` 。
+
+`thenRun()` 的参数是 `Runnable`。它不需要上一个任务的结果，也不返回任何结果。当只需要通知某些人任务已经完成而不需要具体的任务结果时，它会派上用场。
+
+```java
+CompletableFuture.supplyAsync(() -> "linuxea") // 任务结果返回 linuxea 字符串
+        .thenRun(() -> System.out.println("I am done")) // 通知任务完成
+```
+
+
+> `Runnable` 也是我们最熟悉的函数式接口。它没有参数也没有返回值
+
+
+## Combining two CompletableFutures together
 
