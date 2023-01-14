@@ -79,3 +79,79 @@ RegisterQuery 定义了本地服务查找
 - ServerSocketRpcServer 的 AbstractMessageCodecFactory 对 client 请求消息进行编解码
 - BaseHandler 是请求消息处理的抽象接口，RPCServer 将请求消息的处理实现委托给 BaseHandler
 - RequestReflectHandler 是 BaseHandler 的用反射来调用的实现
+
+
+
+
+## Client
+
+
+### 服务发现
+![discovery](discovery.png "discovery")
+
+- Service 代表了注册中心关于一个服务的信息，如服务名，ip, port 
+- ServiceDiscoverer 定义了给定服务名的服务发现接口
+- RedisServiceDiscovery 是 ServiceDiscoverer 关于 redis 做为远程服务信息保存的实现
+
+
+### 客户端负载均衡
+![ServiceLoadBalance](ServiceLoadBalance.png "ServiceLoadBalance")
+- ServiceLoadBalance 定义了负载均衡的接口，通过给定一组服务获取一个服务
+- PollLoadBalance 为轮询负载的实现
+
+
+### 客户端网络请求
+
+![netclient](NetClient.png "netClient")
+
+- NetClient 定义了客户端网络请求接口的定义，参数为客户端本地 RpcRequest 包装信息以及请求的服务 service，以及服务端响应 RpcResponse
+- RawSocketNetClient 是 NetClient 的关于原生 socket 实现。
+
+
+![SocketGenerate](SocketGenerate.png "SocketGenerate")
+- SocketGenerate 定义了 socket 的获取与关闭
+- SocketPool 为 socket 复用连接池的实现。
+- SocketPrototypeGenerate 为每次请求都创建一个新 socket 的实现
+
+
+
+### 客户端动态代理
+![ClientProxyFactory](ClientProxyFactory.png "ClientProxyFactory")
+
+通过 jdk 动态代理，我们会客户端方法句柄生成代理对象，具体的 InvocationHandler 实现如下:
+```java
+public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+
+    //1. 获得服务信息
+    String serviceName = targetClazz.getName();
+    List<Service> services = serviceDiscoverer.discovery(serviceName);
+    Service selectOne = serviceLoadBalance.selectOne(services);
+
+    //2. 构建request对象
+    RpcRequest rpcRequest = new RpcRequest();
+    rpcRequest.setRequestId(UUID.randomUUID().toString());
+    rpcRequest.setServiceName(serviceName);
+    rpcRequest.setMethod(method.getName());
+    rpcRequest.setParametersTypes(method.getParameterTypes());
+    rpcRequest.setParameters(args);
+
+    //3. 发送请求
+    RpcResponse rpcResponse = netClient.sendReq(rpcRequest, selectOne);
+
+    // 4. 请求结果校验
+    if (rpcResponse.getException() != null) {
+      throw rpcResponse.getException();
+    }
+
+    return rpcResponse.getReturnValue();
+  }
+```
+
+
+获取上面代理过的一个真实对象：
+```java
+public <T> T getProxyClient() {
+    return (T) Proxy.newProxyInstance(targetClazz.getClassLoader(),
+        new Class[]{targetClazz}, this);
+  }
+```
