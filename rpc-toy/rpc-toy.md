@@ -155,3 +155,47 @@ public <T> T getProxyClient() {
         new Class[]{targetClazz}, this);
   }
 ```
+
+
+
+
+## Common
+
+common 模块是 client server 共用的模块。
+主要包括消息的编解码，序列化与反序列化，加密与解密，以及共用消息体 RpcRequest, RpcResponse。
+
+
+### Codec
+
+![codec](codec.png "codec")
+
+- MessageEncode 定义了编码接口，将传输消息 RPCMessage 做编码处理，返回字节数组 byte[]
+- MessageDecode 定义了解码接口，将 InputStream 做解码处理，返回 RpcMessage 
+- LengthFieldMessageEncode 为 MessageEncode 的基于长度的编码实现。
+   - MAGIC_NUM 4个字节表示
+   - MESSAGE_TYPE 1个字节表示
+   - FULL_LENGTH 编码消息总字节数，4个字节表示
+   - PROTOCOL_VERSION 1个字节表示
+   - SERIALIZE_TYPE 序列化类型，1个字节表示
+   - COMPRESS_TYPE 压缩类型，1个字节表示
+   - message body 消息体 ，字节长度计算（FULL_LENGTH - (4 + 1 + 4 + 1 + 1 + 1) = （FULL_LENGTH - 12）
+- AbstractMessageCodecFactory 为编码工厂方法
+
+
+### Compress
+![compress](CompressorFactory.png "compress")
+
+- CompressorFactory 定义了消息体的解压缩接口
+- CompressTypeEnum 定义了消息压缩的算法枚举
+- CompressorFactoryBuilder 为消息压缩的 builder 构建者
+- GzipCompressorFactory 为消息体解压缩接口的 Gzip 算法实现
+
+### Serialize
+![serialize](SerializeFactory.png "serialize")
+
+同 Compress 压缩模块相似。
+
+Serialize 模块是关于消息体序列化与反序列化接口的定义与实现
+
+
+
