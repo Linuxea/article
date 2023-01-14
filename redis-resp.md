@@ -203,6 +203,15 @@ RESP 同样支持数组嵌套。比如一个二维数据表示如下:
 -World\r\n
 ```
 
+
+# RESP protocol implement
+
+基于 `RESP` 实现自己的 `redis` 客户端。
+设计结构如下图：
+
+
+
+
 ## 参考
 
 - [1] [RESP protocol spec](https://redis.io/docs/reference/protocol-spec/#high-performance-parser-for-the-redis-protocol)
