@@ -1,4 +1,4 @@
-## 实现一个玩具类 rpc
+# 实现一个玩具类 rpc
 
 > Remote Procedure Call is a software communication protocol that one program can use to request a service from a program located in another computer on a network without having to understand the network's details. RPC is used to call other processes on the remote systems like a local system. A procedure call is also sometimes known as a function call or a subroutine call.
 
@@ -10,7 +10,7 @@
 主要从实现角色来看看实现一个简易版本的 RPC 的步骤。
 
 一次完整的 RPC 过程中，会有如下的步骤：
-- `client` 调用 `client stub`(客户端的本地存根，代表着远程方法)。这是一次本地调用，会将调用参数以普通方法调用的形式入栈
+- `client` 调用 `client stub` (客户端的本地存根，代表着远程方法)。这是一次本地调用，会将调用参数以普通方法调用的形式入栈
 - `client stub` 打包参数到消息中，这个过程称为 `marshal`
 - 客户端获取对应的远程服务器地址，发起一次系统调用，本地操作系统将消息从客户端机器发送到远程服务的机器
 - `server` 操作系统将进来的消息包传递给 `server stub`
@@ -171,7 +171,47 @@ public <T> T getProxyClient() {
    - `SERIALIZE_TYPE` 序列化类型，1个字节表示
    - `COMPRESS_TYPE` 压缩类型，1个字节表示
    - `message body` 消息体 ，字节长度计算（FULL_LENGTH - (4 + 1 + 4 + 1 + 1 + 1) = （FULL_LENGTH - 12）
+- `LengthFieldMessageDecode` 为 MessageDecode 的基于长度的解码实现。根据 LengthFieldMessageEncode 编码规则进行解码
 - `AbstractMessageCodecFactory` 为编码工厂方法
+
+查看编码与解码的相关代码：
+
+LengthFieldMessageEncode:
+```java
+byte serialize = obj.getSerialize();
+byte[] serializeBytes = SerializeFactoryBuilder.build(serialize).serialize(obj);
+
+byte compress = obj.getCompress();
+byte[] compressBytes = CompressorFactoryBuilder.build(compress).compress(serializeBytes);
+
+// body and it's length
+int bodyLength = compressBytes.length;
+int fullLength = 12 + bodyLength; // four bytes for full length field
+ByteBuffer byteBuffer = ByteBuffer.allocate(fullLength);
+byteBuffer.put(CodecConstant.MAGIC_NUM).put((byte) 1).putInt(fullLength).put((byte) 1).put(SerailizeTypeEnum.from(serialize).getCode()).put(CompressTypeEnum.GZIP.getCode()).put(compressBytes);
+return byteBuffer.array();
+```
+
+LengthFieldMessageDecode:
+```java
+byte[] magicNum = inputStream.readNBytes(4);
+byte[] version = inputStream.readNBytes(1);
+byte[] fullLength = inputStream.readNBytes(4);
+byte[] messageType = inputStream.readNBytes(1);
+byte[] serializeType = inputStream.readNBytes(1);
+byte[] compressType = inputStream.readNBytes(1);
+// extract data bytes
+ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
+buffer.put(fullLength);
+buffer.rewind();
+int value = buffer.getInt();
+byte[] dataBytes = inputStream.readNBytes(value - 12);
+// uncompress
+byte[] decompress = CompressorFactoryBuilder.build(compressType[0]).decompress(dataBytes);
+// deserialize
+return SerializeFactoryBuilder.build(serializeType[0]).deserialize(decompress, RpcMessage.class);
+```
+
 
 
 ### Compress
@@ -187,11 +227,24 @@ public <T> T getProxyClient() {
 
 同 Compress 压缩模块相似。
 
-`Serialize` 模块是关于消息体序列化与反序列化接口的定义与实现
+`Serialize` 模块是关于消息体序列化与反序列化接口的定义与实现。
 
 
 
+## Summary
+
+通过按模块拆分来实现一个简易版本的 rpc
 
 
+了解其不同的组成以及如何相互协作来达到进程间远程通信的目的。
+
+
+
+## Reference
+
+- [1] [Java开发者的RPC实战课](https://juejin.cn/book/7047357110337667076?scrollMenuIndex=0)
+- [2] [rpc-spring-starter](https://github.com/PPPHUANG/rpc-spring-starter)
+- [3] [Dynamic Proxies in Java](https://www.baeldung.com/java-dynamic-proxies)
+- [4] [big-endian and little-endian](https://www.techtarget.com/searchnetworking/definition/big-endian-and-little-endian)
 
 
