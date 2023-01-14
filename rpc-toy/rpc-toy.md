@@ -3,6 +3,8 @@
 > Remote Procedure Call is a software communication protocol that one program can use to request a service from a program located in another computer on a network without having to understand the network's details. RPC is used to call other processes on the remote systems like a local system. A procedure call is also sometimes known as a function call or a subroutine call.
 
 
+## RPC process
+
 不过多介绍 RPC 的概念。主要从实现角色来看看实现一个简易版本的 RPC 的步骤。
 
 
@@ -45,3 +47,35 @@ The client stub unmarshalls the return parameters, and execution returns to the 
    - 解压缩
    - 消息编码
 
+## Server
+
+
+### 服务注册与发现
+
+![alt text](register.png "Title")
+
+ServiceObj 用来代表 server 端的一个服务提供者对象。
+```java
+ServiceObj serviceObj = new ServiceObj();
+serviceObj.setName(Hello.class.getName()); // 服务名称
+serviceObj.setClazz(Hello.class); // class 缓存避免反射频繁获取
+serviceObj.setObj(new HelloImpl()); // 具体的服务提供者实现
+```
+
+RegisterServer 定义了服务注册与移除接口
+- LocalRegisterServer 为本地实现，维护服务名称与服务提供者的关系
+- RedisRegisterServer 为远程实现，redis 存储着服务注册信息
+- LocalRegisterServer 与 RedisRegisterServer 通关服务名称进行关联查找
+
+RegisterQuery 定义了本地服务查找
+- get(string) 通过服务名称查询 LocalRegisterServer 维护的服务提供者
+
+
+### rpc 服务器
+
+![rpcserver](rpcserver.png "rpcserver")
+
+- RPCServer 定义了 rpc server 的启动与停止，ServerSocketRpcServer 是 RPCServer 的实现
+- ServerSocketRpcServer 的 AbstractMessageCodecFactory 对 client 请求消息进行编解码
+- BaseHandler 是请求消息处理的抽象接口，RPCServer 将请求消息的处理实现委托给 BaseHandler
+- RequestReflectHandler 是 BaseHandler 的用反射来调用的实现
