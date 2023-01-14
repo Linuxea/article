@@ -7,7 +7,7 @@
 
 今天不过多介绍 RPC 的概念。
 
-主要从实现角色来看看实现一个简易版本的 RPC 的步骤。
+主要从实现角度来看看实现一个简易版本的 RPC 的步骤。
 
 一次完整的 RPC 过程中，会有如下的步骤：
 - `client` 调用 `client stub` (客户端的本地存根，代表着远程方法)。这是一次本地调用，会将调用参数以普通方法调用的形式入栈
@@ -54,7 +54,7 @@ serviceObj.setObj(new HelloImpl()); // 具体的服务提供者实现
 RegisterServer 定义了服务注册与移除接口
 - LocalRegisterServer 为本地实现，维护服务名称与服务提供者的关系
 - RedisRegisterServer 为远程实现，redis 存储着服务注册信息
-- LocalRegisterServer 与 RedisRegisterServer 通关服务名称进行关联查找
+- LocalRegisterServer 与 RedisRegisterServer 通过服务名称进行关联查找
 
 RegisterQuery 定义了本地服务查找
 - get(string) 通过服务名称查询 LocalRegisterServer 维护的服务提供者
@@ -238,7 +238,7 @@ return SerializeFactoryBuilder.build(serializeType[0]).deserialize(decompress, R
 
 了解其不同的组成以及如何相互协作来达到进程间远程通信的目的。
 
-
+完整代码链接 [lrpc](https://github.com/Linuxea/lrpc)
 
 ## Reference
 
