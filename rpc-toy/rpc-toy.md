@@ -5,30 +5,19 @@
 
 ## RPC process
 
-不过多介绍 RPC 的概念。主要从实现角色来看看实现一个简易版本的 RPC 的步骤。
+今天不过多介绍 RPC 的概念。
 
-
-During an RPC, the following steps take place:
-
-The client calls the client stub. The call is a local procedure call with parameters pushed onto the stack in the normal way.
-The client stub packs the procedure parameters into a message and makes a system call to send the message. The packing of the procedure parameters is called marshalling.
-The client's local OS sends the message from the client machine to the remote server machine.
-The server OS passes the incoming packets to the server stub.
-The server stub unpacks the parameters -- called unmarshalling -- from the message.
-When the server procedure is finished, it returns to the server stub, which marshals the return values into a message. The server stub then hands the message to the transport layer.
-The transport layer sends the resulting message back to the client transport layer, which hands the message back to the client stub.
-The client stub unmarshalls the return parameters, and execution returns to the caller.
-
+主要从实现角色来看看实现一个简易版本的 RPC 的步骤。
 
 一次完整的 RPC 过程中，会有如下的步骤：
-- client 调用 client stub(客户端的本地存根，代表着远程方法)。这是一次本地调用，会将调用参数以普通方法调用的形式入栈
-- client stub 打包参数到消息中，这个过程称为 marshal
+- `client` 调用 `client stub`(客户端的本地存根，代表着远程方法)。这是一次本地调用，会将调用参数以普通方法调用的形式入栈
+- `client stub` 打包参数到消息中，这个过程称为 `marshal`
 - 客户端获取对应的远程服务器地址，发起一次系统调用，本地操作系统将消息从客户端机器发送到远程服务的机器
-- server 操作系统将进来的消息包传递给 server stub
-- server stub 从消息中解包出请求参数（相应地称为 unmarshal），将根据请求找到对应的 server producer 并执行
-- server 端方法执行完成后，server stub 将返回值 marshal 到一个消息中，并将消息传递给传输层
-- 传输层将生成的消息发送回客户端传输层，客户端传输层将消息返回给 client stub
-- client stub unmarshal 响应消息并获取返回的参数，return 给 client 端调用者
+- `server` 操作系统将进来的消息包传递给 `server stub`
+- `server stub` 从消息中解包出请求参数（相应地称为 `unmarshal` ），将根据请求找到对应的 `server provider` 并执行
+- `server` 端方法执行完成后，`server stub` 将返回值 `marshal` 到一个消息中，并将消息传递给传输层
+- 传输层将生成的消息发送回客户端传输层，客户端传输层将消息返回给 `client stub`
+- `client stub` `unmarshal` 响应消息并获取返回的参数，`return` 给 `client` 端调用者
 
 
 
@@ -75,10 +64,10 @@ RegisterQuery 定义了本地服务查找
 
 ![rpcserver](rpcserver.png "rpcserver")
 
-- RPCServer 定义了 rpc server 的启动与停止，ServerSocketRpcServer 是 RPCServer 的实现
-- ServerSocketRpcServer 的 AbstractMessageCodecFactory 对 client 请求消息进行编解码
-- BaseHandler 是请求消息处理的抽象接口，RPCServer 将请求消息的处理实现委托给 BaseHandler
-- RequestReflectHandler 是 BaseHandler 的用反射来调用的实现
+- `RPCServer` 定义了 rpc 服务器的启动与停止，`ServerSocketRpcServer` 是 RPCServer 的实现
+- `ServerSocketRpcServer` 的 `AbstractMessageCodecFactory` 对 client 请求消息进行编解码
+- `BaseHandler` 是请求消息处理的抽象接口，`RPCServer` 将请求消息的处理实现委托给 `BaseHandler`
+- `RequestReflectHandler` 是 `BaseHandler` 的用反射来调用的实现
 
 
 
@@ -86,39 +75,42 @@ RegisterQuery 定义了本地服务查找
 ## Client
 
 
+
 ### 服务发现
 ![discovery](discovery.png "discovery")
 
-- Service 代表了注册中心关于一个服务的信息，如服务名，ip, port 
-- ServiceDiscoverer 定义了给定服务名的服务发现接口
-- RedisServiceDiscovery 是 ServiceDiscoverer 关于 redis 做为远程服务信息保存的实现
+- `Service` 代表了注册中心关于一个服务的信息，如服务名，ip, port 
+- `ServiceDiscoverer` 定义了给定服务名的服务发现接口
+- `RedisServiceDiscovery` 是 ServiceDiscoverer 关于 redis 做为远程服务信息保存的实现
 
 
 ### 客户端负载均衡
 ![ServiceLoadBalance](ServiceLoadBalance.png "ServiceLoadBalance")
-- ServiceLoadBalance 定义了负载均衡的接口，通过给定一组服务获取一个服务
-- PollLoadBalance 为轮询负载的实现
+
+- `ServiceLoadBalance` 定义了负载均衡的接口，通过给定一组服务获取一个服务
+- `PollLoadBalance` 为轮询负载的实现
 
 
 ### 客户端网络请求
 
 ![netclient](NetClient.png "netClient")
 
-- NetClient 定义了客户端网络请求接口的定义，参数为客户端本地 RpcRequest 包装信息以及请求的服务 service，以及服务端响应 RpcResponse
-- RawSocketNetClient 是 NetClient 的关于原生 socket 实现。
+- `NetClient` 定义了客户端网络请求接口的定义，参数为客户端本地 RpcRequest 包装信息以及请求的服务 service，以及服务端响应 RpcResponse
+- `RawSocketNetClient` 是 NetClient 的关于原生 socket 实现。
 
 
 ![SocketGenerate](SocketGenerate.png "SocketGenerate")
-- SocketGenerate 定义了 socket 的获取与关闭
-- SocketPool 为 socket 复用连接池的实现。
-- SocketPrototypeGenerate 为每次请求都创建一个新 socket 的实现
+
+- `SocketGenerate` 定义了 socket 的获取与关闭
+- `SocketPool` 为 socket 复用连接池的实现。
+- `SocketPrototypeGenerate` 为每次请求都创建一个新 socket 的实现
 
 
 
 ### 客户端动态代理
 ![ClientProxyFactory](ClientProxyFactory.png "ClientProxyFactory")
 
-通过 jdk 动态代理，我们会客户端方法句柄生成代理对象，具体的 InvocationHandler 实现如下:
+通过 `jdk` 动态代理，我们会客户端方法句柄生成代理对象，具体的 `InvocationHandler` 实现如下:
 ```java
 public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
@@ -161,41 +153,45 @@ public <T> T getProxyClient() {
 
 ## Common
 
-common 模块是 client server 共用的模块。
-主要包括消息的编解码，序列化与反序列化，加密与解密，以及共用消息体 RpcRequest, RpcResponse。
+`common` 模块是 client server 共用的模块
+主要包括`消息的编解码`，`序列化与反序列化`，`加密与解密`，以及共用消息体 `RpcRequest`, `RpcResponse` 等等
 
 
 ### Codec
 
 ![codec](codec.png "codec")
 
-- MessageEncode 定义了编码接口，将传输消息 RPCMessage 做编码处理，返回字节数组 byte[]
-- MessageDecode 定义了解码接口，将 InputStream 做解码处理，返回 RpcMessage 
-- LengthFieldMessageEncode 为 MessageEncode 的基于长度的编码实现。
-   - MAGIC_NUM 4个字节表示
-   - MESSAGE_TYPE 1个字节表示
-   - FULL_LENGTH 编码消息总字节数，4个字节表示
-   - PROTOCOL_VERSION 1个字节表示
-   - SERIALIZE_TYPE 序列化类型，1个字节表示
-   - COMPRESS_TYPE 压缩类型，1个字节表示
-   - message body 消息体 ，字节长度计算（FULL_LENGTH - (4 + 1 + 4 + 1 + 1 + 1) = （FULL_LENGTH - 12）
-- AbstractMessageCodecFactory 为编码工厂方法
+- `MessageEncode` 定义了编码接口，将传输消息 `RPCMessage` 做编码处理，返回字节数组 `byte[]`
+- `MessageDecode` 定义了解码接口，将 `InputStream` 做解码处理，返回 `RpcMessage` 
+- `LengthFieldMessageEncode` 为 MessageEncode 的基于长度的编码实现。
+   - `MAGIC_NUM` 4个字节表示
+   - `MESSAGE_TYPE` 1个字节表示
+   - `FULL_LENGTH` 编码消息总字节数，4个字节表示
+   - `PROTOCOL_VERSION` 1个字节表示
+   - `SERIALIZE_TYPE` 序列化类型，1个字节表示
+   - `COMPRESS_TYPE` 压缩类型，1个字节表示
+   - `message body` 消息体 ，字节长度计算（FULL_LENGTH - (4 + 1 + 4 + 1 + 1 + 1) = （FULL_LENGTH - 12）
+- `AbstractMessageCodecFactory` 为编码工厂方法
 
 
 ### Compress
 ![compress](CompressorFactory.png "compress")
 
-- CompressorFactory 定义了消息体的解压缩接口
-- CompressTypeEnum 定义了消息压缩的算法枚举
-- CompressorFactoryBuilder 为消息压缩的 builder 构建者
-- GzipCompressorFactory 为消息体解压缩接口的 Gzip 算法实现
+- `CompressorFactory` 定义了消息体的解压缩接口
+- `CompressTypeEnum` 定义了消息压缩的算法枚举
+- `CompressorFactoryBuilder` 为消息压缩的 `builder` 构建者
+- `GzipCompressorFactory` 为消息体解压缩接口的 `Gzip` 算法实现
 
 ### Serialize
 ![serialize](SerializeFactory.png "serialize")
 
 同 Compress 压缩模块相似。
 
-Serialize 模块是关于消息体序列化与反序列化接口的定义与实现
+`Serialize` 模块是关于消息体序列化与反序列化接口的定义与实现
+
+
+
+
 
 
 
