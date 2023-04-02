@@ -59,11 +59,11 @@ scrape_configs:
 
   - job_name: node
     static_configs:
-      - targets: ['119.91.226.57:9100']
+      - targets: ['localhost:9100']
 
   - job_name: 'mysqld_exporter'
     static_configs:
-      - targets: ['119.91.226.57:9104']
+      - targets: ['localhost:9104']
 ```
 
 这是一个 prometheus.yml 配置文件，用于配置 Prometheus 服务的抓取设置和目标。文件中包含以下部分：
@@ -74,9 +74,9 @@ scrape_configs:
 
 - scrape_configs：一个包含多个抓取任务配置的列表。
   - 第一个任务名为 "prometheus"，用于抓取 Prometheus 本身的指标。它使用默认的 /metrics 路径和 http 方案。目标为 localhost:9090。
-  - 第二个任务名为 "node"，用于抓取 Node Exporter 的指标。目标为 119.91.226.57:9100。请注意，这里的 IP 地址应替换为您自己的服务器地址。
+  - 第二个任务名为 "node"，用于抓取 Node Exporter 的指标。目标为 localhost:9100。请注意，这里的 IP 地址应替换为您自己的服务器地址。
 
-  - 第三个任务名为 "mysqld_exporter"，用于抓取 MySQL Exporter 的指标。目标为 119.91.226.57:9104。请注意，这里的 IP 地址应替换为您自己的服务器地址。
+  - 第三个任务名为 "mysqld_exporter"，用于抓取 MySQL Exporter 的指标。目标为 localhost:9104。请注意，这里的 IP 地址应替换为您自己的服务器地址。
 
 此配置文件定义了三个抓取任务，分别用于收集 Prometheus 本身、Node Exporter 和 MySQL Exporter 的指标。
 
@@ -106,7 +106,7 @@ services:
     image: prom/mysqld-exporter:latest
     container_name: linuxea-mysql-exporter
     environment:
-      DATA_SOURCE_NAME: "root:root@(119.91.226.57:3306)/"
+      DATA_SOURCE_NAME: "root:root@(localhost:3306)/"
     ports:
       - 9104:9104
 
@@ -154,9 +154,9 @@ docker-compose up -d
 
 ## 第四步：配置 Grafana
 
-使用浏览器访问 http://119.91.226.57:3000，使用默认的用户名（admin）和密码（admin）登录 Grafana。
+使用浏览器访问 http://localhost:3000，使用默认的用户名（admin）和密码（admin）登录 Grafana。
 登录后，首先更改初始密码。
-然后，转到 Configuration（配置）> Data Sources（数据源），添加一个新的 Prometheus 数据源，URL 设置为 http://119.91.226.57:9090。
+然后，转到 Configuration（配置）> Data Sources（数据源），添加一个新的 Prometheus 数据源，URL 设置为 http://localhost:9090。
 
 ![configure datasource](ds.png "datasource")
 
