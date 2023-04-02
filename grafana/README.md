@@ -4,39 +4,40 @@
 
 监控可以帮助我们发现潜在的问题、优化资源利用率，提高用户体验。
 
-本文将介绍如何使用 Docker 快速搭建 Grafana 和 Prometheus 监控平台，并通过 mysql-exporter 和 node-exporter 收集 MySQL 数据库和服务器节点的相关指标。
+本文将介绍如何使用 `Docker` 快速搭建 `Grafana` 和 `Prometheus` 监控平台，并通过 `mysql-exporter` 和 `node-exporter` 收集 `MySQL` 数据库和`服务器节点`的相关指标。
 
 
 
 ## Introduction
 
 ### Prometheus
-Prometheus 是一款开源的、可靠的监控和告警系统，由 SoundCloud 开发并于 2012 年开始投入使用。Prometheus 使用 pull 模式收集指标数据，提供强大的数据模型和查询语言（PromQL），并且具有高度的可扩展性和集成能力。Prometheus 已成为云原生计算基金会（CNCF）的一员，并广泛应用于 Kubernetes 等云原生技术的监控中。
+Prometheus 是一款开源的、可靠的监控和告警系统，由 `SoundCloud` 开发并于 2012 年开始投入使用。Prometheus 使用 `pull` 模式收集指标数据，提供强大的数据模型和查询语言（`PromQL`），并且具有高度的可扩展性和集成能力。Prometheus 已成为云原生计算基金会（CNCF）的一员，并广泛应用于 Kubernetes 等云原生技术的监控中。
 
 ### Exporter
 
-在 Prometheus 生态系统中，exporter 是一类专门用于收集和暴露目标系统的指标数据的软件。它们通常以 HTTP 服务的形式运行，提供一个用于 Prometheus 抓取数据的 /metrics 端点。以下是一些常见的 exporter 介绍：
+在 Prometheus 生态系统中，exporter 是一类专门用于收集和暴露目标系统的指标数据的软件。它们通常以 `HTTP` 服务的形式运行，提供一个用于 Prometheus 抓取数据的 `/metrics` 端点。以下是一些常见的 exporter 介绍：
 
-- node-exporter：node-exporter 是一个官方提供的 exporter，用于收集服务器节点的硬件和操作系统指标。它可以提供诸如 CPU、内存、磁盘空间、网络流量等基本系统指标。这些指标有助于监控服务器的整体健康状况和资源利用情况。
+- `node-exporter`：node-exporter 是一个官方提供的 exporter，用于收集服务器节点的硬件和操作系统指标。它可以提供诸如 CPU、内存、磁盘空间、网络流量等基本系统指标。这些指标有助于监控服务器的整体健康状况和资源利用情况。
 
-- mysqld-exporter：mysqld-exporter（又称为 mysql-exporter）是一个官方提供的 exporter，用于收集 MySQL 数据库的性能指标。它可以提供关于查询、吞吐量、连接数、复制延迟等方面的详细信息，帮助你监控和优化数据库性能。
+- `mysqld-exporter`：mysqld-exporter（又称为 mysql-exporter）是一个官方提供的 exporter，用于收集 MySQL 数据库的性能指标。它可以提供关于查询、吞吐量、连接数、复制延迟等方面的详细信息，帮助你监控和优化数据库性能。
 
-- postgres_exporter：postgres_exporter 是一个用于收集 PostgreSQL 数据库性能指标的 exporter。与 mysqld-exporter 类似，它提供了有关查询、连接数、锁定、复制等方面的指标，有助于了解 PostgreSQL 数据库的运行状况。
+- `postgres_exporter`：postgres_exporter 是一个用于收集 PostgreSQL 数据库性能指标的 exporter。与 mysqld-exporter 类似，它提供了有关查询、连接数、锁定、复制等方面的指标，有助于了解 PostgreSQL 数据库的运行状况。
 
-- redis_exporter：redis_exporter 是一个用于收集 Redis 数据库性能指标的 exporter。它提供了关于内存使用、客户端连接、命中率、慢查询等方面的指标，有助于监控和优化 Redis 数据库的性能。
+- `redis_exporter`：redis_exporter 是一个用于收集 Redis 数据库性能指标的 exporter。它提供了关于内存使用、客户端连接、命中率、慢查询等方面的指标，有助于监控和优化 Redis 数据库的性能。
 
 这些 exporter 只是 Prometheus 生态系统中众多 exporter 中的一部分。实际上，许多应用程序和服务都有对应的 exporter，用于收集和暴露相关指标。此外，如果需要，你还可以编写自定义 exporter 来满足特定需求。总之，exporter 是 Prometheus 监控体系的重要组成部分，为各种场景提供了丰富的指标数据。
 
 本文将介绍 node-exporter 与 mysqld-exporter 的搭建与启动。
 
 ### Grafana
+
 Grafana 是一款开源的数据可视化和监控平台，支持多种数据源（如 Prometheus、InfluxDB 等）和丰富的图表类型。Grafana 提供了简洁的界面、灵活的面板配置和强大的告警功能，使得用户能够快速构建美观且实用的监控仪表盘。
 
 
 ## Startup
 
 
-### 第一步：创建 prometheus.yml 配置文件
+### 第一步：创建 `prometheus.yml` 配置文件
 ```yml
 # my global config
 global:
@@ -117,22 +118,22 @@ services:
 
 ```
 
-这是一个 docker-compose.yml 文件，用于配置和运行以下四个服务：
+这是一个 `docker-compose.yml` 文件，用于配置和运行以下四个服务：
 
-- prometheus：使用官方的 prom/prometheus:latest 镜像。将本地的 prometheus.yml 配置文件挂载到容器的 /etc/prometheus/prometheus.yml 路径。Prometheus 服务将监听 9090 端口。
+- `prometheus`：使用官方的 prom/prometheus:latest 镜像。将本地的 prometheus.yml 配置文件挂载到容器的 /etc/prometheus/prometheus.yml 路径。Prometheus 服务将监听 9090 端口。
 
-- grafana：使用官方的 grafana/grafana:latest 镜像。Grafana 服务将监听 3000 端口。
+- `grafana`：使用官方的 grafana/grafana:latest 镜像。Grafana 服务将监听 3000 端口。
 
-- mysql-exporter：使用官方的 prom/mysqld-exporter:latest 镜像。设置 DATA_SOURCE_NAME 环境变量以连接到 MySQL 数据库（请确保使用您自己的数据库连接信息）。MySQL Exporter 服务将监听 9104 端口。
+- `mysql-exporter`：使用官方的 prom/mysqld-exporter:latest 镜像。设置 DATA_SOURCE_NAME 环境变量以连接到 MySQL 数据库（请确保使用您自己的数据库连接信息）。MySQL Exporter 服务将监听 9104 端口。
 
-- node-exporter：使用官方的 prom/node-exporter:latest 镜像。Node Exporter 服务将监听 9100 端口。
+- `node-exporter`：使用官方的 prom/node-exporter:latest 镜像。Node Exporter 服务将监听 9100 端口。
 
-通过使用 docker-compose up -d 命令，这个文件将帮助你启动一个完整的监控平台，包括 Prometheus、Grafana、MySQL Exporter 和 Node Exporter。这个配置可以让你监控服务器节点的基本指标（通过 Node Exporter）以及 MySQL 数据库的性能指标（通过 MySQL Exporter）。
+通过使用 `docker-compose up -d` 命令，这个文件将帮助你启动一个完整的监控平台，包括 Prometheus、Grafana、MySQL Exporter 和 Node Exporter。这个配置可以让你监控服务器节点的基本指标（通过 Node Exporter）以及 MySQL 数据库的性能指标（通过 MySQL Exporter）。
 
 
 ## 第三步：启动容器
 
-在包含 docker-compose.yml 文件的目录中，运行以下命令：
+在包含 `docker-compose.yml` 文件的目录中，运行以下命令：
 ```bash
 docker-compose up -d
 ```
@@ -208,28 +209,30 @@ https://grafana.com/grafana/dashboards/ 是 Grafana 官方提供的预制仪表�
 
 ## Other DataSource
 
-Grafana 是一款开源的数据可视化和监控平台，支持多种数据源，除了 promethemus , 还可以添加 mysql 等作为数据源。
+Grafana 是一款开源的数据可视化和监控平台，支持多种数据源，除了 `promethemus`, 还可以添加 `mysql` 等作为数据源。
 
 ![mysql-datasource.png](mysql-datasource.png "mysql-datasource.png")
 
-在 Grafana 中使用 MySQL 数据源意味着您可以将 Grafana 连接到您的 MySQL 数据库，并使用 Grafana 的功能来查询、可视化和分析存储在数据库中的数据。这使得 Grafana 成为一个灵活且强大的工具，可以满足许多不同类型的数据分析和监控需求。
+在 `Grafana` 中使用 `MySQL` 数据源意味着您可以将 `Grafana` 连接到您的 `MySQL` 数据库，并使用 `Grafana` 的功能来查询、可视化和分析存储在数据库中的数据。这使得 `Grafana` 成为一个灵活且强大的工具，可以满足许多不同类型的数据分析和监控需求。
 
-使用 MySQL 数据源在 Grafana 中有以下优点：
+使用 `MySQL` 数据源在 `Grafana` 中有以下优点：
 
-- 集中管理和监控数据：通过使用 Grafana，您可以在同一仪表板上显示来自 MySQL 数据库和其他数据源（如 Prometheus、InfluxDB 等）的数据，实现多种数据来源的集中管理和监控。
+- 集中管理和监控数据：通过使用 `Grafana`，您可以在同一仪表板上显示来自 `MySQL` 数据库和其他数据源（如 Prometheus、InfluxDB 等）的数据，实现多种数据来源的集中管理和监控。
 
-- 丰富的可视化选项：Grafana 提供了丰富的图表类型和可视化选项，如折线图、饼图、表格、热力图等，可以帮助您更直观地分析和展示 MySQL 数据库中的数据。
+- 丰富的可视化选项：`Grafana` 提供了丰富的图表类型和可视化选项，如折线图、饼图、表格、热力图等，可以帮助您更直观地分析和展示 MySQL 数据库中的数据。
 
-- 自定义查询：Grafana 允许您使用 SQL 语言编写自定义查询，以便您可以根据需求筛选、聚合和转换存储在 MySQL 数据库中的数据。
+- 自定义查询：`Grafana` 允许您使用 SQL 语言编写自定义查询，以便您可以根据需求筛选、聚合和转换存储在 MySQL 数据库中的数据。
 
-- 动态仪表板和模板变量：Grafana 支持使用模板变量创建动态仪表板，这使得您可以轻松地根据不同的条件、时间范围或实体切换数据视图。
+- 动态仪表板和模板变量：`Grafana` 支持使用模板变量创建动态仪表板，这使得您可以轻松地根据不同的条件、时间范围或实体切换数据视图。
 
-- 告警和通知：Grafana 提供了一个告警和通知系统，允许您基于 MySQL 数据源的数据设置告警阈值和条件，当满足条件时，Grafana 将发送通知到您选择的目标（如电子邮件等）。
+- 告警和通知：`Grafana` 提供了一个告警和通知系统，允许您基于 `MySQL` 数据源的数据设置告警阈值和条件，当满足条件时，`Grafana` 将发送通知到您选择的目标（如电子邮件等）。
 
 
 ## Summary
-本文详细介绍了如何使用 Docker 搭建 Grafana 与 Prometheus 监控平台，并通过 mysql-exporter 和 node-exporter 收集 MySQL 数据库和服务器节点的相关指标。通过这个过程，我们可以快速部署一个可靠、灵活且易于扩展的监控环境，为互联网服务提供实时的性能和可用性信息。Docker 和 Docker Compose 的使用简化了搭建过程，使得监控系统的维护和升级变得更加方便。
+
+本文详细介绍了如何使用 `Docker` 搭建 `Grafana` 与 `Prometheus` 监控平台，并通过 `mysql-exporter` 和 `node-exporter` 收集 `MySQL` 数据库和`服务器节点`的相关指标。通过这个过程，我们可以快速部署一个可靠、灵活且易于扩展的监控环境，为互联网服务提供实时的性能和可用性信息。`Docker` 和 `Docker Compose` 的使用简化了搭建过程，使得监控系统的维护和升级变得更加方便。
 同时我们添加了其他数据源：mysql。并且演示了如果在 Grafana 中管理 mysql 数据源。
+
 希望本文能为你的监控项目提供有益的指导和启示。
 
 
