@@ -348,14 +348,14 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 
 /**
- * 在一个在线购物网站中，为了防止刷单行为，限制每个用户在30分钟内只能下单数量为1件
+ * 在一个在线购物网站中，为了防止刷单行为，限制每个用户在30分钟内只能下单数量为100件
  */
 public class ShoppingRateLimiter {
 
   @Test
   public void test() throws InterruptedException {
     ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-    int maxShoppTimes = 1;
+    int maxShoppTimes = 100;
     int windowSize = 30;
     RateLimiter rateLimiter = new FixWindowRateLimiter(maxShoppTimes, windowSize,
         TimeUnit.MINUTES,
@@ -384,6 +384,73 @@ public class ShoppingRateLimiter {
 
 }
 ```
+
+在上述例子中，使用固定时间窗口实现。当窗口切换时，会存在以下问题：
+用户在第1分钟购买一件衣服 ，29分钟时购买99件衣服 ；当切换到一个新窗口时，用户又能够重新购买最多100件衣服 。两个相邻的窗口访问突增，在遇到其他业务场景时，可能并不是一个好现象。
+
+这里使用滑动窗口来重新实现：
+```java
+package com.linuxea.impl;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
+import com.linuxea.RateLimiter;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.Test;
+import redis.clients.jedis.Jedis;
+
+/**
+ * 在一个在线购物网站中，为了防止刷单行为，限制每个用户在30分钟内只能下单数量为1件
+ */
+public class ShoppingSlidingWindowRateLimiter {
+
+  @Test
+  public void test() throws InterruptedException {
+    ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+    int maxShoppTimes = 100;
+    int windowSize = 30;
+    Jedis jedis = new Jedis(System.getenv("REDIS_HOST"));
+    RateLimiter rateLimiter = new SlidingWindowRateLimiter(maxShoppTimes, jedis, windowSize,
+        TimeUnit.MINUTES, scheduledExecutorService);
+
+    Long nextWindowStartTimestamp = rateLimiter.getNextWindowStartTimestamp();
+    System.out.println("下一个窗口开始时间:" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(
+        new Date(nextWindowStartTimestamp)));
+
+    //token 资源创建预热
+    TimeUnit.MILLISECONDS.sleep(200);
+    Integer successCount = 0;
+    Integer failCount = 0;
+    for (int i = 0; i < 110; i++) {
+      boolean canShopping = rateLimiter.tryAcquire();
+      if (canShopping) {
+        System.out.println("购买成功");
+        successCount++;
+      } else {
+        System.out.println("购买失败");
+        failCount++;
+      }
+    }
+    System.out.println("购买成功次数:" + successCount);
+    System.out.println("购买失败次数:" + failCount);
+
+    TimeUnit.SECONDS.sleep(2);
+    assertFalse(rateLimiter.tryAcquire());
+
+
+  }
+
+}
+```
+
+> 注意：以上两种方式不存在孰优孰劣，在业务场景符合时选择不同一实现方式
+
+
+
 
 - 在一个API服务中，为了保护后端服务不被过多请求拖垮，限制每个客户端每秒钟只能发起一定数量的请求
 ```java
@@ -488,6 +555,8 @@ public class NaturalSignRateLimiterTest {
 }
 ```
 
+以上完整代码与测试脚本链接：https://github.com/Linuxea/ratelimiter
+
 
 ## 总结
 
@@ -497,8 +566,3 @@ public class NaturalSignRateLimiterTest {
 - 滑动时间窗口限流在平滑流量控制和弹性处理能力方面具有优势，但实现复杂度和计算开销较高。
 
 在选择限流方案时，需要根据具体情况权衡这些因素。
-
-
-## Reference
-
-- [1] aaaa (https://www.baidu.com)
