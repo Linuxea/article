@@ -41,7 +41,12 @@ public interface RateLimiter {
 
 ### 固定窗口
 
-固定窗口限流是将时间分成固定大小的窗口，每个窗口内允许一定数量的请求。固定窗口限流简单易实现。
+#### 均匀平缓的固定窗口
+
+当需要在整个时间段内平均分配请求时。
+例如，在视频流传输、在线游戏等对实时性要求较高的场景，此方案可以有效平滑传输速率，避免突发流量对系统造成冲击。
+
+将时间分成固定大小的窗口，每个窗口内允许`固定`数量的请求。
 
 
 我们可以使用令牌桶（Token Bucket）算法。令牌桶算法允许我们在一段时间内限制请求数。每个请求需要消耗一个令牌。我们将桶中的令牌数量限制为Y，X单位时间内添加Y个令牌。当桶中没有令牌时，请求将被拒绝。
@@ -75,17 +80,56 @@ public class FixedIntervalRateLimiter implements RateLimiter {
 }
 ```
 
-如果我们设置maxTokens为5，period为1秒，那么每隔1/5秒就会触发一次增加令牌的操作。
-方案：每隔一段固定的时间间隔（X单位时间 / Y次请求）增加一个令牌。
+每隔一段固定的时间间隔（X单位时间 / Y次请求）增加一个令牌，如果我们设置maxTokens为5，period为1秒，那么每隔1/5(结果为1)秒就会触发一次增加令牌的操作。
+
 优点：这种方案可以平滑地控制请求速率，避免在短时间内产生大量请求导致系统压力过大。
 
-适用场景：当您需要在整个时间段内平均分配请求时，这种方案比较合适。例如，在视频流传输、在线游戏等对实时性要求较高的场景，此方案可以有效平滑传输速率，避免突发流量对系统造成冲击。
+
+### 应对突发具有弹性的固定窗口
+
+当允许在短时间内处理较多请求，同时在长时间尺度上限制请求速率时。
+例如，在API调用、短时任务调度等场景中，此方案可以在保证长期稳定性的前提下，应对短时突发流量。
+
+```java
+package com.linuxea;
+
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class FixWindowRateLimiter implements RateLimiter {
+
+  private final int maxTokens;
+  private final AtomicInteger tokens;
+
+  public FixWindowRateLimiter(int maxTokens, long period, TimeUnit timeUnit,
+      ScheduledExecutorService scheduler) {
+    this.maxTokens = maxTokens;
+    this.tokens = new AtomicInteger(maxTokens);
+    scheduler.scheduleAtFixedRate(this::addTokens, period, period, timeUnit);
+  }
 
 
-但在窗口切换时可能出现突发流量。
+  private void addTokens() {
+    tokens.set(Math.min(tokens.get() + maxTokens, maxTokens));
+  }
 
+  public boolean tryAcquire() {
+    return tokens.getAndDecrement() > 0;
+  }
+}
 
+```
 
+我们对 `FixedIntervalRateLimiter` 类进行了以下更改实现新的方式：
+
+修改了addToken方法的名称为addTokens，并且将其更改为一次性增加Y个令牌。我们将当前令牌数量加上Y，并确保结果不超过最大令牌数量。
+
+在构造函数中，我们将scheduleAtFixedRate方法的参数更改为this::addTokens，并将时间间隔设置为period。
+
+现在，每隔X单位时间，addTokens方法会被执行一次，并且一次性增加Y个令牌。
+
+优点：这种方案允许在短时间内处理突发请求，提供了一定程度的弹性。
 
 ### 时间滑动窗口
 
