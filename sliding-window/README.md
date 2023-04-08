@@ -8,27 +8,23 @@
 - 在一个网络游戏中，为了防止玩家利用自动化工具刷经验，限制每个玩家在一定时间内只能完成一定数量的任务
 
 
-限流是一种流量控制策略，旨在控制进入系统或服务的请求数量，以保护系统在面对大量请求时仍能维持良好的性能和稳定性。
-
-限流通常用于防止系统过载，降低延迟，避免资源耗尽，从而确保关键服务在高并发环境下正常运行。
-
+限流是一种流量控制策略，旨在控制进入系统或服务的请求数量，防止系统过载，降低延迟，避免资源耗尽。以保护系统在面对大量请求时仍能维持良好的性能和稳定性。
 
 
 ## Introduction
 
-限流可以抽象出一个 ”窗口“。
+限流可以抽象出一个 ”窗口“，窗口限流的核心思想是在一个时间窗口内，对请求数量进行限制。这个时间窗口可以是固定的，也可以是随着时间推移而移动的。我们从两个维度分析窗口：
+- 可用大小：通过控制窗口内的请求量，可以有效地平衡系统负载，提高系统稳定性。
+- 是否随时间移动：实现动态时间范围的流量控制，不需要进行窗口切换及应对随之产生的问题。
 
-窗口限流的核心思想是在一个时间窗口内，对请求数量进行限制。这个时间窗口可以是固定的，也可以是随着时间推移而移动的。
 
-通过控制时间窗口内的请求量，可以有效地平衡系统负载，提高系统稳定性。
-
-接下来，我们会从窗口角度进行分析与实现。
+接下来，我们会以窗口角度进行分析与实现。
 
 
 
 ## 限流实现及其优缺点
 
-我们使用 java 实现代码编程。
+我们使用 `java` 代码编程。
 首先会定义好一个限流的接口，统一不同的实现方式。
 ```java
 /**
@@ -56,11 +52,11 @@ public interface RateLimiter {
 使用背景:
 
 当需要在整个时间段内平均分配请求时。
-例如，在视频流传输、在线游戏等对实时性要求较高的场景，此方案可以有效平滑传输速率，避免突发流量对系统造成冲击。
+例如，在 web 等对实时性要求较高的场景，此方案可以有效平滑传输速率，避免突发流量对系统造成冲击。
 
 将时间分成固定大小的窗口，每个窗口内允许`固定`数量的请求。
 
-我们可以使用令牌桶（Token Bucket）算法。令牌桶算法允许我们在一段时间内限制请求数。每个请求需要消耗一个令牌。我们将桶中的令牌数量限制为Y，X单位时间内添加Y个令牌。当桶中没有令牌时，请求将被拒绝。
+我们可以使用`令牌桶（Token Bucket）`算法。令牌桶算法允许我们在一段时间内限制请求数。每个请求需要消耗一个令牌。我们将桶中的令牌数量限制为Y，X单位时间内添加Y个令牌。当桶中没有令牌时，请求将被拒绝。
 以下是使用Java实现的一个示例：
 
 ```java
@@ -81,23 +77,38 @@ public class FixedIntervalRateLimiter implements RateLimiter {
       ScheduledExecutorService scheduler) {
     this.maxTokens = maxTokens;
     this.tokens = new AtomicInteger(maxTokens);
-    scheduler.scheduleAtFixedRate(this::addToken, 0, period / maxTokens, timeUnit);
+    long periodInMillis = timeUnit.toMillis(period);
+    long intervalInMillis = periodInMillis / maxTokens;
+    scheduler.scheduleAtFixedRate(this::addToken, 0, intervalInMillis, TimeUnit.MILLISECONDS);
   }
 
   private void addToken() {
-    if (tokens.get() < maxTokens) {
+    int currentTokens;
+    do {
+      currentTokens = tokens.get();
+      if (currentTokens >= maxTokens) {
+        return;
+      }
+    } while (!tokens.compareAndSet(currentTokens, currentTokens + 1));
+  }
+
+
+  @Override
+  public boolean tryAcquire() {
+    int currentTokens = tokens.getAndDecrement();
+    if (currentTokens > 0) {
+      return true;
+    } else {
+      // 如果 tokens 变为负数，将其值恢复为0
       tokens.incrementAndGet();
+      return false;
     }
   }
 
-  public boolean tryAcquire() {
-    return tokens.getAndDecrement() > 0;
-  }
 }
-
 ```
 
-每隔一段固定的时间间隔（X单位时间 / Y次请求）增加一个令牌，如果我们设置maxTokens为5，period为1秒，那么每隔1/5(结果为1)秒就会触发一次增加令牌的操作。
+每隔一段固定的时间间隔（X单位时间 / Y次请求）增加一个令牌，如果我们设置maxTokens为50，period为1秒，那么每隔1/5秒就会触发一次增加令牌的操作。
 
 优点：这种方案可以平滑地控制请求速率，避免在短时间内产生大量请求导致系统压力过大。
 
