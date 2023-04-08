@@ -137,7 +137,9 @@ public class FixWindowRateLimiter implements RateLimiter {
       ScheduledExecutorService scheduler) {
     this.maxTokens = maxTokens;
     this.tokens = new AtomicInteger(maxTokens);
-    scheduler.scheduleAtFixedRate(this::addTokens, period, period, timeUnit);
+    long periodInMillis = timeUnit.toMillis(period);
+    scheduler.scheduleAtFixedRate(this::addTokens, periodInMillis, periodInMillis,
+        TimeUnit.MILLISECONDS);
   }
 
 
@@ -146,7 +148,14 @@ public class FixWindowRateLimiter implements RateLimiter {
   }
 
   public boolean tryAcquire() {
-    return tokens.getAndDecrement() > 0;
+    int currentTokens = tokens.getAndDecrement();
+    if (currentTokens > 0) {
+      return true;
+    } else {
+      // 如果 tokens 变为负数，将其值恢复为0
+      tokens.incrementAndGet();
+      return false;
+    }
   }
 }
 
@@ -208,8 +217,10 @@ public class SlidingWindowRateLimiter implements RateLimiter {
     //identifier for the sorted set
     this.key = "sliding_window" + UUID.randomUUID();
     // Schedule a task to remove events older than the lower bound from the sorted set
-    scheduler.scheduleAtFixedRate(this::removeOlderEventOutOfWindows, windowSize, windowSize,
-        widowSizeUnit);
+    long windowSizeInMillis = widowSizeUnit.toMillis(windowSize);
+    scheduler.scheduleAtFixedRate(this::removeOlderEventOutOfWindows, windowSizeInMillis,
+        windowSizeInMillis,
+        TimeUnit.MILLISECONDS);
   }
 
   @Override
