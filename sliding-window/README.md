@@ -5,7 +5,7 @@
 
 - 在一个API服务中，为了保护后端服务不被过多请求拖垮，限制每个客户端每秒钟只能发起一定数量的请求
 
-- 在一个网络游戏中，为了防止玩家利用自动化工具刷经验，限制每个玩家在一定时间内只能完成一定数量的任务
+- 在一个网络游戏中，为了防止玩家利用自动化工具刷经验，限制每个玩家一个自然日能签到一次
 
 
 限流是一种流量控制策略，旨在控制进入系统或服务的请求数量，防止系统过载，降低延迟，避免资源耗尽。以保护系统在面对大量请求时仍能维持良好的性能和稳定性。
@@ -27,6 +27,8 @@
 我们使用 `java` 代码编程。
 首先会定义好一个限流的接口，统一不同的实现方式。
 ```java
+package com.linuxea;
+
 /**
  * 限流器
  * <p> 统一限流接口
@@ -41,8 +43,43 @@ public interface RateLimiter {
    * @return true:获取成功 false:获取失败
    */
   boolean tryAcquire();
-}
 
+  /**
+   * 获取下一个窗口开始时间
+   *
+   * @return 下一个窗口开始时间
+   */
+  Long getNextWindowStartTimestamp();
+}
+```
+
+```java
+package com.linuxea.impl;
+
+import com.linuxea.RateLimiter;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public abstract class AbsRateLimiter implements RateLimiter {
+
+  protected int maxTokens;
+  protected AtomicInteger tokens;
+  protected long windowSize;
+  protected TimeUnit windowTimeUnit;
+  protected long delayTimeStamp;
+
+
+  /**
+   * 下一个窗口开始时间
+   *
+   * @return 下一个窗口开始时间
+   */
+  @Override
+  public Long getNextWindowStartTimestamp() {
+    return System.currentTimeMillis() + delayTimeStamp;
+  }
+
+}
 ```
 
 ### 固定窗口
@@ -62,7 +99,8 @@ public interface RateLimiter {
 以下是使用Java实现的一个示例：
 
 ```java
-import com.linuxea.RateLimiter;
+package com.linuxea.impl;
+
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -70,18 +108,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * 固定时间间隔限流器
  */
-public class FixedIntervalRateLimiter implements RateLimiter {
+public class FixedIntervalRateLimiter extends AbsRateLimiter {
 
-  private final int maxTokens;
-  private final AtomicInteger tokens;
-
-  public FixedIntervalRateLimiter(int maxTokens, long period, TimeUnit timeUnit,
+  public FixedIntervalRateLimiter(int maxTokens, long windowSize, TimeUnit windowTimeUnit,
       ScheduledExecutorService scheduler) {
     this.maxTokens = maxTokens;
-    this.tokens = new AtomicInteger(maxTokens);
-    long periodInMillis = timeUnit.toMillis(period);
-    long intervalInMillis = periodInMillis / maxTokens;
-    scheduler.scheduleAtFixedRate(this::addToken, 0, intervalInMillis, TimeUnit.MILLISECONDS);
+    this.tokens = new AtomicInteger(0);
+    this.windowSize = windowSize;
+    this.windowTimeUnit = windowTimeUnit;
+    long windowSizeInMillis = windowTimeUnit.toMillis(windowSize);
+    long intervalInMillis = windowSizeInMillis / maxTokens;
+    this.delayTimeStamp = intervalInMillis;
+    scheduler.scheduleAtFixedRate(this::addToken, intervalInMillis, intervalInMillis,
+        TimeUnit.MILLISECONDS);
   }
 
   private void addToken() {
@@ -125,23 +164,54 @@ public class FixedIntervalRateLimiter implements RateLimiter {
 - 系统容忍短时间内的流量波动：当系统可以承受短时间内的流量波动时。
 
 ```java
-import com.linuxea.RateLimiter;
+package com.linuxea.impl;
+
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class FixWindowRateLimiter implements RateLimiter {
+public class FixWindowRateLimiter extends AbsRateLimiter {
 
-  private final int maxTokens;
-  private final AtomicInteger tokens;
+  public FixWindowRateLimiter(int maxTokens, long windowSize, Long windowStart,
+      TimeUnit windowTimeUnit, ScheduledExecutorService scheduler) {
+    this.maxTokens = maxTokens;
+    this.tokens = new AtomicInteger(System.currentTimeMillis() > windowStart ? maxTokens : 0);
+    this.windowSize = windowSize;
+    this.windowTimeUnit = windowTimeUnit;
+    long windowSizeInMillis = windowTimeUnit.toMillis(windowSize);
+    this.delayTimeStamp = calculateDelay(windowStart, windowSizeInMillis);
+    scheduler.scheduleAtFixedRate(this::addTokens, delayTimeStamp, windowSizeInMillis,
+        TimeUnit.MILLISECONDS);
+  }
 
-  public FixWindowRateLimiter(int maxTokens, long period, TimeUnit timeUnit,
+  public FixWindowRateLimiter(int maxTokens, long windowSize, TimeUnit windowTimeUnit,
       ScheduledExecutorService scheduler) {
     this.maxTokens = maxTokens;
-    this.tokens = new AtomicInteger(maxTokens);
-    long periodInMillis = timeUnit.toMillis(period);
-    scheduler.scheduleAtFixedRate(this::addTokens, periodInMillis, periodInMillis,
-        TimeUnit.MILLISECONDS);
+    this.tokens = new AtomicInteger(0);
+    this.windowSize = windowSize;
+    this.windowTimeUnit = windowTimeUnit;
+    long windowSizeInMillis = windowTimeUnit.toMillis(windowSize);
+    scheduler.scheduleAtFixedRate(this::addTokens, 0, windowSizeInMillis, TimeUnit.MILLISECONDS);
+  }
+
+  /**
+   * 计算延迟时间
+   *
+   * @param windowStartMillis 从什么时候开始计算
+   * @return 延迟时间
+   */
+  private long calculateDelay(Long windowStartMillis, long windowSizeInMillis) {
+    long ctMillis = System.currentTimeMillis();
+    if (windowStartMillis == null) {
+      return 0;
+    } else if (windowStartMillis <= ctMillis) {
+      //计算从上一个窗口开始到当前时间的已过去的毫秒数。
+      long elapsedTimeSinceWindowStart = (ctMillis - windowStartMillis) % windowSizeInMillis;
+      //计算上一个窗口还需要执行的时间
+      return windowSizeInMillis - elapsedTimeSinceWindowStart;
+    } else {
+      return windowStartMillis - ctMillis;
+    }
   }
 
 
@@ -159,9 +229,8 @@ public class FixWindowRateLimiter implements RateLimiter {
       return false;
     }
   }
+
 }
-
-
 ```
 
 我们对 `FixedIntervalRateLimiter` 类进行了以下更改实现新的 `FixWindowRateLimiter`：
@@ -195,34 +264,32 @@ public class FixWindowRateLimiter implements RateLimiter {
 
 这里我们借助了 `redis` 的有序集合工具，代码实现如下：
 ```java
-import com.linuxea.RateLimiter;
+package com.linuxea.impl;
+
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import redis.clients.jedis.Jedis;
 
-public class SlidingWindowRateLimiter implements RateLimiter {
+public class SlidingWindowRateLimiter extends AbsRateLimiter {
 
-  private final int maxTokens;
   private final Jedis jedis;
-  private final Integer windowSize;
-  private final TimeUnit widowSizeUnit;
   private final String key;
 
-  public SlidingWindowRateLimiter(int maxTokens, Jedis jedis, TimeUnit widowSizeUnit,
+  public SlidingWindowRateLimiter(int maxTokens, Jedis jedis, TimeUnit windowTimeUnit,
       Integer windowSize, ScheduledExecutorService scheduler) {
     this.maxTokens = maxTokens;
     this.jedis = jedis;
     this.windowSize = windowSize;
-    this.widowSizeUnit = widowSizeUnit;
+    this.windowTimeUnit = windowTimeUnit;
     //identifier for the sorted set
     this.key = "sliding_window" + UUID.randomUUID();
     // Schedule a task to remove events older than the lower bound from the sorted set
-    long windowSizeInMillis = widowSizeUnit.toMillis(windowSize);
+    long windowSizeInMillis = windowTimeUnit.toMillis(windowSize);
+    this.delayTimeStamp = windowSizeInMillis;
     scheduler.scheduleAtFixedRate(this::removeOlderEventOutOfWindows, windowSizeInMillis,
-        windowSizeInMillis,
-        TimeUnit.MILLISECONDS);
+        windowSizeInMillis, TimeUnit.MILLISECONDS);
   }
 
   @Override
@@ -233,7 +300,7 @@ public class SlidingWindowRateLimiter implements RateLimiter {
     jedis.zadd(key, tsSeconds, UUID.randomUUID().toString());
 
     // Calculate the lower and upper bounds for the sliding window
-    long lowerBound = tsSeconds - widowSizeUnit.toSeconds(windowSize);
+    long lowerBound = tsSeconds - windowTimeUnit.toSeconds(windowSize);
 
     // Count the events in the sliding window
     long eventCount = jedis.zcount(key, String.valueOf(lowerBound + 1), String.valueOf(tsSeconds));
@@ -243,7 +310,7 @@ public class SlidingWindowRateLimiter implements RateLimiter {
 
   private void removeOlderEventOutOfWindows() {
     long tsSeconds = Instant.now().getEpochSecond();
-    long lowerBound = tsSeconds - widowSizeUnit.toSeconds(windowSize);
+    long lowerBound = tsSeconds - windowTimeUnit.toSeconds(windowSize);
     // Remove events older than the lower bound from the sorted set
     jedis.zremrangeByScore(key, "-inf", String.valueOf(lowerBound));
   }
@@ -262,6 +329,166 @@ public class SlidingWindowRateLimiter implements RateLimiter {
 - 计算开销较大：需要维护请求时间戳列表，每次尝试获取令牌时，都需要遍历列表以移除窗口之外的请求，这可能导致较高的计算开销。
 
 
+## 举粟
+
+回到开文讲到的几个例子，接下来通过在几个场景运用不同的限流来加深对代码的理解
+
+### 在一个在线购物网站中，为了防止刷单行为，限制每个用户在30分钟内只能下单数量为1件
+```java
+package com.linuxea.impl;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
+import com.linuxea.RateLimiter;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.Test;
+
+/**
+ * 在一个在线购物网站中，为了防止刷单行为，限制每个用户在30分钟内只能下单数量为1件
+ */
+public class ShoppingRateLimiter {
+
+  @Test
+  public void test() throws InterruptedException {
+    ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+    int maxShoppTimes = 1;
+    int windowSize = 30;
+    RateLimiter rateLimiter = new FixWindowRateLimiter(maxShoppTimes, windowSize,
+        TimeUnit.MINUTES,
+        scheduledExecutorService);
+
+    Long nextWindowStartTimestamp = rateLimiter.getNextWindowStartTimestamp();
+    System.out.println("下一个窗口开始时间:" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(
+        new Date(nextWindowStartTimestamp)));
+
+    //token 资源创建预热
+    TimeUnit.MILLISECONDS.sleep(200);
+    for (int i = 0; i < 10; i++) {
+      boolean canShopping = rateLimiter.tryAcquire();
+      if (canShopping) {
+        System.out.println("购买成功");
+      } else {
+        System.out.println("购买失败");
+      }
+    }
+
+    TimeUnit.SECONDS.sleep(2);
+    assertFalse(rateLimiter.tryAcquire());
+
+
+  }
+
+}
+```
+
+- 在一个API服务中，为了保护后端服务不被过多请求拖垮，限制每个客户端每秒钟只能发起一定数量的请求
+```java
+package com.linuxea.impl;
+
+import com.linuxea.RateLimiter;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.Test;
+
+public class ApiRateLimiter {
+
+  @Test
+  public void test() throws InterruptedException {
+    ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+    int maxApiRequest = 50;
+    int windowSize = 10;
+    //每10秒钟最多允许50个请求, 每秒钟最多允许5个请求
+    RateLimiter rateLimiter = new FixedIntervalRateLimiter(maxApiRequest, windowSize,
+        TimeUnit.SECONDS,
+        scheduledExecutorService);
+
+    Long nextWindowStartTimestamp = rateLimiter.getNextWindowStartTimestamp();
+    System.out.println("下一个窗口开始时间:" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(
+        new Date(nextWindowStartTimestamp)));
+
+    //token 资源创建预热
+    TimeUnit.MILLISECONDS.sleep(1000);
+
+    Integer successCount = 0;
+    for (int j = 0; j < 10; j++) {
+      for (int i = 0; i < 10; i++) {
+        boolean canShopping = rateLimiter.tryAcquire();
+        if (canShopping) {
+          successCount++;
+          System.out.println("请求成功");
+        } else {
+          System.out.println("请求失败");
+        }
+      }
+      TimeUnit.SECONDS.sleep(1);
+    }
+
+    System.out.println("请求成功次数:" + successCount);
+
+  }
+
+}
+```
+
+- 在一个网络游戏中，为了防止玩家利用自动化工具刷经验，限制每个玩家一个自然日能签到一次
+```java
+package com.linuxea.impl;
+
+import com.linuxea.RateLimiter;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
+import java.util.Date;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.Test;
+
+public class NaturalSignRateLimiterTest {
+
+  @Test
+  public void test() throws InterruptedException {
+    ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+
+    LocalDate today = LocalDate.now();
+    LocalDateTime todayStart = LocalDateTime.of(today, LocalTime.MIN);
+    // 获取今天零点的时间戳
+    long zero = todayStart.toEpochSecond(ZoneOffset.of("+8")) * 1000;
+
+    System.out.println(
+        "上一次窗口开始时间" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(
+            new Date(zero)));
+
+    RateLimiter rateLimiter = new FixWindowRateLimiter(1, 1, zero,
+        TimeUnit.DAYS, scheduledExecutorService);
+
+    Long nextWindowStartTimestamp = rateLimiter.getNextWindowStartTimestamp();
+    System.out.println(
+        "下一次窗口开始时间" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(
+            new Date(nextWindowStartTimestamp)));
+
+    TimeUnit.SECONDS.sleep(1);
+
+    for (int i = 0; i < 10; i++) {
+      System.out.println("能否签到" + rateLimiter.tryAcquire());
+    }
+
+    scheduledExecutorService.shutdown();
+  }
+
+}
+```
+
+
 ## 总结
 
 以上三种限流方案各具特点，在实际应用中，需要根据系统的需求、特点和场景来选择合适的限流策略。
@@ -270,3 +497,8 @@ public class SlidingWindowRateLimiter implements RateLimiter {
 - 滑动时间窗口限流在平滑流量控制和弹性处理能力方面具有优势，但实现复杂度和计算开销较高。
 
 在选择限流方案时，需要根据具体情况权衡这些因素。
+
+
+## Reference
+
+- [1] aaaa (https://www.baidu.com)
