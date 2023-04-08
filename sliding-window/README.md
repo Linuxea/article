@@ -22,7 +22,7 @@
 
 
 
-## 限流实现及其优缺点
+## Implement
 
 我们使用 `java` 代码编程。
 首先会定义好一个限流的接口，统一不同的实现方式。
@@ -46,6 +46,8 @@ public interface RateLimiter {
 ```
 
 ### 固定窗口
+
+
 
 #### 均匀平缓的固定窗口
 
@@ -191,7 +193,7 @@ public class FixWindowRateLimiter implements RateLimiter {
 这种算法允许在任意时间点开始的X单位时间内最多处理Y个请求。为了实现这个功能，我们需要记录请求的时间戳，并在判断请求是否允许时检查滑动窗口内的请求数量。
 
 
-代码实现如下：
+这里我们借助了 `redis` 的有序集合工具，代码实现如下：
 ```java
 import com.linuxea.RateLimiter;
 import java.time.Instant;
@@ -252,7 +254,7 @@ public class SlidingWindowRateLimiter implements RateLimiter {
 优点：
 
 - 平滑流量控制：滑动窗口算法能够在任意时间点开始的X单位时间内平滑地控制请求数量，避免了窗口边界问题。
-弹性处理能力：在窗口内允许处理Y个请求，能够应对突发流量。
+- 增强弹性处理能力：在窗口内允许处理Y个请求，能够应对突发流量。
 
 缺点：
 
