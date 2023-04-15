@@ -2,20 +2,20 @@
 
 ## Preview
 
-Docker 是一种强大的容器技术，它的出现改变了应用程序开发和部署的方式。
+`Docker` 是一种强大的容器技术，它的出现改变了应用程序开发和部署的方式。
 
-而今天提到的 Docker-Compose 是基于 Docker 提供的强大管理工具。
+而今天提到的 `Docker-Compose` 是基于 Docker 提供的强大管理工具。
 
-顾名思义，将Docker Compose与设计模式中的组合模式进行类比，组合模式是一种结构型设计模式，它允许你将对象组合成树形结构以表示“整体/部分”的层次结构。
+顾名思义，将 Docker Compose 与设计模式中的组合模式进行类比，组合模式是一种结构型设计模式，它允许你将对象组合成树形结构以表示“整体/部分”的层次结构。
 
 组合模式能让客户端以统一的方式处理单个对象和对象组合。
 
-在这种情况下，我们可以将Docker容器看作是单个对象，而Docker Compose则可以看作是组合这些容器的工具。
+在这种情况下，我们可以将 Docker 容器看作是单个对象，而 Docker Compose 则可以看作是组合这些容器的工具。
 
-它以一种统一的方式处理和组织多个Docker容器。通过使用Docker Compose，可以更加高效地管理复杂的多容器应用程序，提高开发和运维团队的协作效率。
+它以一种统一的方式处理和组织多个 Docker 容器。通过使用 Docker Compose，可以更加高效地管理复杂的多容器应用程序，提高开发和运维团队的协作效率。
 
 
-这篇文章中，我们尝试用 Docker-Compose 来搭建一个简单的开发环境，包含以下中间件及对应的版本(image:tag)
+这篇文章中，我们尝试用 Docker-Compose 来搭建一个简单的开发环境，包含以下中间件及对应的`版本(image:tag)`
 - redis:latest
 - mysql:8.0.23
 - xxljob:2.1.2
@@ -23,9 +23,9 @@ Docker 是一种强大的容器技术，它的出现改变了应用程序开发�
 
 ## 定义配置文件 docker-compose.yml
 
-docker-compose.yml 是默认的配置文件名，它是一个用于定义和配置多容器Docker应用程序的YAML文件。
+`docker-compose.yml` 是默认的配置文件名，它是一个用于定义和配置多容器 Docker 应用程序的 `YAML` 文件。
 
-这里以配置 redis 最新版本的服务为例:
+这里以配置 `redis` 最新版本的服务为例:
 ```yml
 version: '3.8'
 services:
@@ -43,15 +43,15 @@ volumes:
   redis-data:
 ```
 
-- version: version指令在docker-compose.yml文件中用于指定Docker Compose的文件格式版本。不同版本的Docker Compose文件格式可能支持不同的功能和选项。通过设置该指令确保Docker Compose工具正确地解析并处理配置文件。
-- services: 定义一组服务，这也是 Docker-Compose 的核心，批量定义与管理多个服务
-  - linuxea-redis: 声明一个服务，使用的自定义名称
-    - image: 该服务使用的镜像与tag
-    - container_name: Docker 容器的名称，即 docker ps 名称一栏展示
-    - expose: 声明端口，一种约定，让开发者彼此间了解到该服务所使用的端口
-    - ports: 暴露端口，将本地端口映射到容器内的端口。是真正的暴露端口指令
-    - volumes: redis-data 卷被映射到容器的 /data 目录，将容器数据持久化
-- volumes: 定义一组数据卷，提供服务直接使用
+- `version`: 用于指定 Docker Compose 的文件格式版本。不同版本的 Docker Compose 文件格式可能支持不同的功能和选项。通过设置该指令确保 Docker Compose 工具正确地解析并处理配置文件。
+- `services`: 定义一组服务，这也是 Docker-Compose 的核心，批量定义与管理多个服务
+  - `linuxea-redis`: 声明一个服务，使用的自定义名称
+    - `image`: 该服务使用的镜像与tag
+    - `container_name`: Docker 容器的名称，即 docker ps 输出结果 NAMES 一栏展示
+    - `expose`: 声明端口，一种约定，让开发者彼此间了解到该服务所使用的端口
+    - `ports`: 暴露端口，将本地端口映射到容器内的端口。是真正的暴露端口指令
+    - `volumes`: redis-data 卷被映射到容器的 /data 目录，将容器数据持久化
+- `volumes`: 定义一组数据卷，提供服务直接使用
 
 为了体现 Docker Compose 的优势，我们再添加一个服务 mysql，最终配置如下:
 ```yaml
@@ -85,13 +85,14 @@ volumes:
 
 ## Docker Compose 命令
 
-我们尝试将以上的文件保存到 docker-compose.yml 文件中，并在该目录下运行 Docker Compose 的启动命令。
+我们尝试将以上的文件保存到 `docker-compose.yml` 文件中，并在该目录下运行 `Docker Compose` 的启动命令。
 ![docker-compose-up.png](docker-compose-up.png 'docker-compose-up.png')
 
 我们使用了 `docker-compose -f ./docker-compose.yml up` 来启动配置中相关服务。
-- docker-compose 是主要的 Docker Compose 的命令
-- -f 用来指定使用的配置文件，当存在符合默认名称的配置文件时，则不需要显式指定，此处为尽可能覆盖讲解则显式指定。（关于默认配置名称，在不同的 Docker-Compose 版本中是有差异的，如 compose.yaml, compose.yml, docker-compose.yaml, docker-compose.yml 等多个版本）
-- up: 创建并启动容器
+
+- `docker-compose` 是主要的 Docker Compose 的命令
+- `-f` 用来指定使用的配置文件，当存在符合默认名称的配置文件时，则不需要显式指定，此处为尽可能覆盖讲解则显式指定。（关于默认配置名称，在不同的 Docker-Compose 版本中是有差异的，如 `compose.yaml`, `compose.yml`, `docker-compose.yaml`, `docker-compose.yml` 等多个版本）
+- `up`: 创建并启动容器
 
 最终 docker-compose.yml 配置的服务（们）都启动了并以前台方式运行。
 
@@ -107,7 +108,7 @@ volumes:
 
 ![docker-compose-up-redis.png](docker-compose-up-redis.png 'docker-compose-up-redis.png')
 
-通过这种方式可以创建并启动指定容器 `linuxea-redis`。
+通过这种追加服务名称的方式，可以创建并启动指定容器 `linuxea-redis`。
 
 类似的 docker-compose 命令还有
 批量查看服务的日志
@@ -225,9 +226,9 @@ volumes:
 ```
 
 关于这份整合后的配置文件，需要再提到几个新指令：
-- environment: 通过设置环境变量的值，提供给容器内部使用
-- depends_on: 用来管理服务之间的依赖关系，会影响服务之间的创建与启动顺序
-- 在同一个docker-compose.yml文件中定义的服务，默认会被创建在同一个网络中。Docker会自动为这些服务分配一个内部的DNS解析器。这使得这些服务之间能够通过容器名称进行相互访问，而无需暴露宿主机上的端口。这种内部网络通信模式提供了更好的安全性和隔离性。因此，我们可以直接在 `linuxea-xxljob` 容器内部直接使用 `linuxea-mysql` 来访问数据库所在容器
+- `environment`: 通过设置环境变量的值，提供给容器内部使用，如数据库连接地址，用户名与密码，jvm 参数等等
+- `depends_on`: 用来管理服务之间的依赖关系，会影响服务之间的创建与启动顺序
+- 在同一个 docker-compose.yml 文件中定义的服务，默认会被创建在同一个网络中。Docker 会自动为这些服务分配一个内部的DNS解析器。这使得这些服务之间能够通过容器名称进行相互访问，而无需暴露宿主机上的端口。这种内部网络通信模式提供了更好的安全性和隔离性。因此，我们可以直接在 `linuxea-xxljob` 容器内部直接使用 `linuxea-mysql` 来访问数据库所在容器
 
 
 接下来，我们重新启用这份配置文件:
@@ -239,3 +240,6 @@ volumes:
 
 使用 Docker-Desktop 可以更直观地查看 Docker-Compose 对多个服务之间的整合：
 ![docker-compose-up-desktop.png](docker-compose-up-desktop.png 'docker-compose-up-desktop.png')
+
+
+## Summary
