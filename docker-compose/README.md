@@ -163,3 +163,79 @@ Commands:
 现在我们大概清楚 docker-compose 所提供的批量容器管理能力，通过指定服务，docker-compose 也能够实现对单个服务的管理。
 
 
+## 搭建简易的开发环境
+
+回到开头，我们提到的要搭建的开发环境：
+- redis:latest
+- mysql:8.0.23
+- xxljob:2.1.2
+- rabbitmq:3.8.0
+
+使用 docker compose 能够轻易完成这些中间件的创建与管理。
+
+```yml
+version: '3.8'
+services:
+  linuxea-redis:
+    image: redis:latest
+    container_name: linuxea-redis
+    expose:
+      - "6379"
+    volumes:
+      - redis-data:/data
+
+  linuxea-mysql:
+    image: mysql:8.0.23
+    container_name: linuxea-mysql
+    expose:
+      - "3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: mypassword
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  linuxea-xxljob:
+    image: xuxueli/xxl-job-admin:2.1.2
+    container_name: linuxea-xxljob
+    ports:
+      - 8080:8080
+    volumes:
+      - xxljob-data:/data/applogs
+    environment:
+      - spring.datasource.url=jdbc:mysql://linuxea-mysql:3306/xxl_job
+      - spring.datasource.username=root
+      - spring.datasource.password=mypassword
+    depends_on:
+      - linuxea-mysql
+
+  linuxea-rabbitmq:
+    image: rabbitmq:3.8.0
+    container_name: linuxea-rabbitmq
+    expose:
+      - "5672"
+      - "15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
+volumes:
+  redis-data:
+  mysql-data:
+  xxljob-data:
+  rabbitmq-data:
+```
+
+关于这份整合后的配置文件，需要再提到几个新指令：
+- environment: 通过设置环境变量的值，提供给容器内部使用
+- depends_on: 用来管理服务之间的依赖关系，会影响服务之间的创建与启动顺序
+- 在同一个docker-compose.yml文件中定义的服务，默认会被创建在同一个网络中。Docker会自动为这些服务分配一个内部的DNS解析器。这使得这些服务之间能够通过容器名称进行相互访问，而无需暴露宿主机上的端口。这种内部网络通信模式提供了更好的安全性和隔离性。因此，我们可以直接在 `linuxea-xxljob` 容器内部直接使用 `linuxea-mysql` 来访问数据库所在容器
+
+
+接下来，我们重新启用这份配置文件:
+![docker-compose-up-test.png](docker-compose-up-test.png 'docker-compose-up-test.png')
+
+- ➜  docker-compose -f ./docker-compose.yml up -d    (以后台形式创建并启动所有服务)
+- ➜  docker-compose-article docker-compose -f ./docker-compose.yml ps （查看所有服务运行状况）
+
+
+使用 Docker-Desktop 可以更直观地查看 Docker-Compose 对多个服务之间的整合：
+![docker-compose-up-desktop.png](docker-compose-up-desktop.png 'docker-compose-up-desktop.png')
