@@ -53,7 +53,113 @@ volumes:
     - volumes: redis-data 卷被映射到容器的 /data 目录，将容器数据持久化
 - volumes: 定义一组数据卷，提供服务直接使用
 
+为了体现 Docker Compose 的优势，我们再添加一个服务 mysql，最终配置如下:
+```yaml
+version: '3.8'
+services:
+  linuxea-redis:
+    image: redis:latest
+    container_name: linuxea-redis
+    expose:
+      - "6379"
+    ports:
+      - 6379:6379
+    volumes:
+      - redis-data:/data
+
+  linuxea-mysql:
+    image: mysql:8.0.23
+    container_name: linuxea-mysql
+    expose:
+      - "3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: mypassword
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+volumes:
+  redis-data:
+  mysql-data:
+```
 
 
 ## Docker Compose 命令
+
+我们尝试将以上的文件保存到 docker-compose.yml 文件中，并在该目录下运行 Docker Compose 的启动命令。
+![docker-compose-up.png](docker-compose-up.png 'docker-compose-up.png')
+
+我们使用了 `docker-compose -f ./docker-compose.yml up` 来启动配置中相关服务。
+- docker-compose 是主要的 Docker Compose 的命令
+- -f 用来指定使用的配置文件，当存在符合默认名称的配置文件时，则不需要显式指定，此处为尽可能覆盖讲解则显式指定。（关于默认配置名称，在不同的 Docker-Compose 版本中是有差异的，如 compose.yaml, compose.yml, docker-compose.yaml, docker-compose.yml 等多个版本）
+- up: 创建并启动容器
+
+最终 docker-compose.yml 配置的服务（们）都启动了并以前台方式运行。
+
+>如果需要后台方式运行，可以使用 `docker-compose -f ./docker-compose.yml up -d`。
+
+
+可以看到，我们配置的服务全部成功启动，通过 Docker Compose 可以实现一次性管理多个容器。
+我们还可以细粒度控制单个服务。
+
+```bash
+➜  docker-compose -f ./docker-compose.yml up linuxea-redis
+```
+
+![docker-compose-up-redis.png](docker-compose-up-redis.png 'docker-compose-up-redis.png')
+
+通过这种方式可以创建并启动指定容器 `linuxea-redis`。
+
+类似的 docker-compose 命令还有
+批量查看服务的日志
+```
+➜  docker-compose -f ./docker-compose.yml logs
+```
+
+批量查看服务的运行状态
+```
+➜  docker-compose -f ./docker-compose.yml ps
+```
+
+批量删除停止的容器
+```
+➜  docker-compose -f ./docker-compose.yml rm
+```
+
+批量停止与删除容器
+```bash
+➜  docker-compose -f ./docker-compose.yml down
+```
+
+更多的命令可以查阅 `docker-compose --help`
+```bash
+Commands:
+  build       Build or rebuild services
+  config      Parse, resolve and render compose file in canonical format
+  cp          Copy files/folders between a service container and the local filesystem
+  create      Creates containers for a service.
+  down        Stop and remove containers, networks
+  events      Receive real time events from containers.
+  exec        Execute a command in a running container.
+  images      List images used by the created containers
+  kill        Force stop service containers.
+  logs        View output from containers
+  ls          List running compose projects
+  pause       Pause services
+  port        Print the public port for a port binding.
+  ps          List containers
+  pull        Pull service images
+  push        Push service images
+  restart     Restart service containers
+  rm          Removes stopped service containers
+  run         Run a one-off command on a service.
+  start       Start services
+  stop        Stop services
+  top         Display the running processes
+  unpause     Unpause services
+  up          Create and start containers
+  version     Show the Docker Compose version information
+```
+
+现在我们大概清楚 docker-compose 所提供的批量容器管理能力，通过指定服务，docker-compose 也能够实现对单个服务的管理。
+
 
