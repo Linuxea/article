@@ -4,7 +4,7 @@
 
 `Docker` 是一种强大的容器技术，它的出现改变了应用程序开发和部署的方式。
 
-而今天提到的 `Docker-Compose` 是基于 Docker 提供的强大管理工具。
+而今天提到的 `Docker-Compose` 是官方基于 Docker 提供的强大管理工具。
 
 顾名思义，将 Docker Compose 与设计模式中的组合模式进行类比，组合模式是一种结构型设计模式，它允许你将对象组合成树形结构以表示“整体/部分”的层次结构。
 
@@ -243,12 +243,13 @@ volumes:
 
 ## Summary
 
-通过如何创建并管理配置文件，我们成功搭建并启动多个服务。
+通过如何创建并管理配置文件 docker-compose.yml，我们成功搭建并启动多个服务。这让我们体会到了 Docker Compose 带来轻松便捷。
 
-Docker Compose 作为一个强大的管理工具，整合 Docker 本身的优势与批量管理能力，这使得多个容器的创建管理与维护变
+Docker Compose 作为一个强大的管理工具，整合 Docker 本身的优势与批量管理能力，使得多个容器的创建管理与维护变
 得更加得心应手，能够有效提升开发，测试，与运维的效率。
 
 ## Reference
 - DockerCompose (https://docs.docker.com/compose/compose-file/03-compose-file/)
 - xxlJob (https://www.xuxueli.com/xxl-job/#%E5%85%B6%E4%BB%96%EF%BC%9ADocker%20%E9%95%9C%E5%83%8F%E6%96%B9%E5%BC%8F%E6%90%AD%E5%BB%BA%E8%B0%83%E5%BA%A6%E4%B8%AD%E5%BF%83%EF%BC%9A)
 - xxl-job github (https://github.com/xuxueli/xxl-job)
+- Composite_pattern (https://en.wikipedia.org/wiki/Composite_pattern)
