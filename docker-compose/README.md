@@ -241,5 +241,14 @@ volumes:
 使用 Docker-Desktop 可以更直观地查看 Docker-Compose 对多个服务之间的整合：
 ![docker-compose-up-desktop.png](docker-compose-up-desktop.png 'docker-compose-up-desktop.png')
 
-
 ## Summary
+
+通过如何创建并管理配置文件，我们成功搭建并启动多个服务。
+
+Docker Compose 作为一个强大的管理工具，整合 Docker 本身的优势与批量管理能力，这使得多个容器的创建管理与维护变
+得更加得心应手，能够有效提升开发，测试，与运维的效率。
+
+## Reference
+- DockerCompose (https://docs.docker.com/compose/compose-file/03-compose-file/)
+- xxlJob (https://www.xuxueli.com/xxl-job/#%E5%85%B6%E4%BB%96%EF%BC%9ADocker%20%E9%95%9C%E5%83%8F%E6%96%B9%E5%BC%8F%E6%90%AD%E5%BB%BA%E8%B0%83%E5%BA%A6%E4%B8%AD%E5%BF%83%EF%BC%9A)
+- xxl-job github (https://github.com/xuxueli/xxl-job)
