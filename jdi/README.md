@@ -270,3 +270,81 @@ finally {
 Hi Everyone, Welcome to Java Platform Debugger Architecture
 Today, we'll dive into Java Debug Interface
 ```
+
+
+
+## Extension - Remote Debug
+
+除了本地编程调试，还想再提一下 java 的远程调试，在本地调试的基础上，添加了网络模块，实现了远程调试。
+
+Java 远程调试是指在远程计算机上运行的 Java 应用程序的调试过程。它允许开发人员在远程计算机上调试 Java 应用程序，就好像它们在本地计算机上运行一样。Java 远程调试需要使用 Java Platform Debugger Architecture（JPDA）来建立调试会话。调试会话包括远程计算机上的应用程序和本地计算机上的调试器之间的通信。为了进行远程调试，需要在远程计算机上启动应用程序，并将其连接到本地计算机上运行的调试器。这样，开发人员就可以在本地计算机上检查和控制远程计算机上运行的应用程序的执行。
+
+举个粟子,以我们熟悉的 spring boot api 为例:
+```java
+@RestController
+public class HelloController {
+
+  @GetMapping("/hello")
+  public String hello(@RequestParam String name) {
+    System.out.println(name);
+    return "hello:" + name;
+  }
+}
+```
+
+打包部署到远程服务器上并运行:
+```bash
+mvn clean install package
+```
+
+上传到远程服务器并运行
+```bash
+➜  ~ cd ~/remote-debug 
+➜  remote-debug /root/dev/jdk-20.0.1/bin/java '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005' -jar remotedebug-0.0.1-SNAPSHOT.jar
+```
+
+这是一个启动一个 Java 应用程序并开启远程调试的命令。
+
+具体来说，它启动了一个名为 `remotedebug-0.0.1-SNAPSHOT.jar` 的 Java 应用程序，并将其连接到一个监听端口为 5005 的调试器。这个命令中的 `-agentlib:jdwp` 参数告诉 JVM 启用 JPDA 调试代理，`transport=dt_socket` 参数指定了使用 socket 进行通信，`server=y` 参数表示 JVM 将充当调试服务器，`suspend=n` 参数表示启动 JVM 后不暂停，`address=*:5005` 参数指定了监听的地址和端口号。
+
+这样，开发人员就可以使用一个支持 JDWP 协议的调试器连接到这个端口，并远程调试这个 Java 应用程序了。
+
+在支持远程调试的 IDE 上如 Intellij IDEA 上开启远程调试功能:
+
+![remote-debug.png](remote-debug.png 'remote-debug.png')
+
+
+启动配置好的远程 debug 配置，运行如图：
+
+![remote-debug1.png](remote-debug1.png 'remote-debug1.png')
+
+
+向远程服务器发送请求：
+```bash
+➜  ~ curl http://119.91.226.57:8080/hello\?name\=linuxea
+```
+
+本地调试程序收到请求并完成对程序的调试：
+![remote-debug2.png](remote-debug2.png 'remote-debug2.png')
+
+远程调试的好处不言而喻，特别是对于本地调试不太方便的场景：
+1. 更快的故障排除：如果在更新线上服务时出现问题，Java 远程调试可以帮助开发人员更快地诊断和解决问题。开发人员可以在应用程序出现问题时立即进行调试，而不必等待应用程序停止或重新启动。
+
+2. 更高效的更新：Java 远程调试可以加快更新速度，因为它允许开发人员在本地计算机上进行调试，而不必在远程计算机上进行调试。这样可以节省时间和精力，使开发人员更专注于代码的编写和测试。
+
+3. 更高效的团队协作：Java 远程调试可以帮助团队更高效地协作。开发人员可以在本地计算机上进行调试，并将结果共享给其他团队成员，以便他们可以更快地了解应用程序的状态和进展。这样可以提高团队的协作效率，使团队更加紧密和协调。
+
+4. ... ... 等等
+
+
+
+## Conclusion
+
+这篇文章中，我们对 JPDA 中的 JDI 进行了初步的探索，了解了 java 世界探索的初步奥秘。同时我们简要介绍了与此息息相关的远程调试，并提供了实例详解。
+
+
+## Reference
+
+- Java Debug Interface API (JDI) – Hello World Example | Programmatic debugging for beginners: https://itsallbinary.com/java-debug-interface-api-jdi-hello-world-example-programmatic-debugging-for-beginners/
+- An Intro to the Java Debug Interface (JDI): https://www.baeldung.com/java-debug-interface
+- A java program to debug another java program using JDI but receive nothing useful event: https://stackoverflow.com/questions/76135113/a-java-program-to-debug-another-java-program-using-jdi-but-receive-nothing-usefu/76135372#76135372
