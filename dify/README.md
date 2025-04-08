@@ -68,3 +68,17 @@ Dify 的 Agent 模式允许用户创建能够自主执行任务的 AI 代理。�
 配置`目标语言`以及`源文本` 组件，将用户的输入翻译为目标语言。
 
 ![dify_textgenerator.png](dify_textgenerator.png 'dify_textgenerator.png')
+
+### Chatflow
+
+通过`问题分类器`节点，将用户的请求分为售前，售后，闲聊，将请求流转到不同的 LLM 进行后续处理。
+
+![dify_chatflow.png](dify_chatflow.png 'dify_chatflow.png')
+
+### workflow
+
+
+根据用户的输入，将请求交由 R1，借助 R1 强大的思维链能力，将对用户问题的思维链过程完整地输出到下一个非推理LLM节点，让非推理LLM复现思维过程，给出答案。
+最终通过 `Text-2-Speech`节点生成语音文件。
+
+![dify_workflow.png](dify_workflow.png 'dify_workflow.png')
