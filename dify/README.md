@@ -61,3 +61,10 @@ Dify 支持与 Google 搜索、Slack、DALL-E、Stable Diffusion 和 Firecrawl �
 
 
 Dify 的 Agent 模式允许用户创建能够自主执行任务的 AI 代理。通过结合 LLM 和外部工具，Agent 可以根据用户的指令完成复杂的任务，例如数据检索、信息处理和自动化操作。
+
+
+### 文本生成
+
+配置`目标语言`以及`源文本` 组件，将用户的输入翻译为目标语言。
+
+![dify_textgenerator.png](dify_textgenerator.png 'dify_textgenerator.png')
