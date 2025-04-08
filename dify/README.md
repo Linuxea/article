@@ -47,4 +47,17 @@ Dify 支持与 Google 搜索、Slack、DALL-E、Stable Diffusion 和 Firecrawl �
 
 ### 聊天机器人
 
+支持多轮对话的 AI：
+
 ![chat_llm.png](chat_llm.png 'chat_llm.png')
+
+
+
+### AI 代理 
+
+配置工具集，指定工具名称与作用：
+
+![dify_agent_2.png](dify_agent_2.png 'dify_agent_2.png')
+
+
+Dify 的 Agent 模式允许用户创建能够自主执行任务的 AI 代理。通过结合 LLM 和外部工具，Agent 可以根据用户的指令完成复杂的任务，例如数据检索、信息处理和自动化操作。
