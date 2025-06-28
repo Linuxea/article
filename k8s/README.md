@@ -4,7 +4,7 @@
 
 ### **第一步：构建基础 Go Web 服务**
 
-我们的第一步是创建一个简单的 HTTP 服务器。它将监听一个端口，并在收到请求时返回一条简单的 “Hello, World\!” 消息。我们将使用 Go 语言内置的 net/http 包。
+我们的第一步是创建一个简单的 HTTP 服务器。它将监听一个端口，并在收到请求时返回一条简单的 “Hello, World!” 消息。我们将使用 Go 语言内置的 net/http 包。
 
 **main.go**
 
@@ -42,17 +42,17 @@ func main() {
 
 **本地运行与测试**
 
-在您的终端中，使用以下命令来运行这个服务：
+在终端中，使用以下命令来运行这个服务：
 
 ```bash
 go run main.go
 ```
 
-你会看到 "服务启动，监听端口 8080" 的输出。现在，打开浏览器或使用 curl 访问 http://localhost:8080，您将收到我们预设的响应消息。
+你会看到 "服务启动，监听端口 8080" 的输出。现在，打开浏览器或使用 curl 访问 http://localhost:8080 将收到我们预设的响应消息。
 
 ### **第二步：应用容器化 (Docker)**
 
-服务可以运行后，下一步是将其打包成一个 Docker 镜像。这样可以确保它在任何环境中都能以相同的方式运行。我们将使用**多阶段构建 (Multi-stage build)** 的方式来创建 Dockerfile，这是一种最佳实践，可以显著减小最终镜像的体积。
+服务可以运行后，下一步是将其打包成一个 Docker 镜像。这样可以确保它在任何环境中都能以相同的方式运行。我们将使用**多阶段构建 (Multi-stage build)** 的方式来创建 Dockerfile，可以显著减小最终镜像的体积。
 
 **Dockerfile**
 
@@ -108,11 +108,15 @@ CMD ["./app"]
 
    这个命令会在后台启动一个名为 registry 的容器，并将容器的 5000 端口映射到主机的 5000 端口。  
 3. **标记并推送到本地仓库**: 构建好的镜像需要被正确地标记（tag），以便推送到我们的本地仓库。  
+    ```
    # 标记镜像，指向本地仓库地址 localhost:5000  
-   `docker tag go-k8s-app localhost:5000/go-k8s-app`
+   docker tag go-k8s-app localhost:5000/go-k8s-app
+    ```
 
+    ```
    # 推送镜像到本地仓库  
-   `docker push localhost:5000/go-k8s-app`
+   docker push localhost:5000/go-k8s-app
+    ```
 
 4. **本地运行容器 (验证)**: 在推送到仓库后，我们仍然可以像之前一样在本地运行容器进行验证。  
    `docker run -p 8080:8080 localhost:5000/go-k8s-app`
@@ -121,14 +125,13 @@ CMD ["./app"]
 
 ### **第三步：部署到 Kubernetes (K8s)**
 
-现在我们有了一个位于镜像仓库中的 Docker 镜像，是时候将它部署到 Kubernetes 集群了。为此，我们需要定义几个 K8s 资源：`Deployment``、Service` 和 `Ingress`。
+现在我们有了一个位于镜像仓库中的 Docker 镜像，是时候将它部署到 Kubernetes 集群。为此，我们需要定义几个 K8s 资源：`Deployment`、`Service` 和 `Ingress`。
 
 **1 Deployment: 管理应用实例**
 
-Deployment 负责创建和维护我们应用的多个副本 (Pod)，确保应用的可用性和可扩展性。
+Deployment 负责创建和维护应用的多个副本 (Pod)，确保应用的可用性和可扩展性。
 
 **deployment.yaml**
-
 ```yaml
 apiVersion: apps/v1  
 kind: Deployment  
@@ -157,11 +160,10 @@ spec:
 
 **2 Service: 暴露应用**
 
-```yaml
 Deployment 创建的 Pods 是有生命周期的，它们的 IP 地址会变化。Service 提供了一个稳定的内部 IP 地址和 DNS 名称，用于访问这些 Pods。
 
 **service.yaml**
-
+```yaml
 apiVersion: v1  
 kind: Service  
 metadata:  
@@ -187,9 +189,10 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress  
 metadata:  
   name: go-app-ingress  
-spec:  
+spec:
+  ingressClassName: nginx
   rules:  
-  - host: my-go-app.example.com # 您希望用来访问服务的域名  
+  - host: my-go-app.example.com # 希望用来访问服务的域名  
     http:  
       paths:  
       - path: /  
@@ -201,11 +204,11 @@ spec:
               number: 80 # Service 监听的端口
 ```
 
+> Ingress Controller 作为集群流量的总入口，它负责读取你定义的 Ingress 规则，并将来自外部的 HTTP/HTTPS 流量精确地路由到集群内部正确的服务上。我们使用了 nginx ingress controller 来执行 Ingress 规则
+
 **部署到集群**
 
 假设你已经配置好了 kubectl 并连接到了一个 K8s 集群，现在可以按顺序应用这些配置文件：
-
-> 本地使用 minikube 搭建一个单节点 k8s 环境
 
 ```bash
 # 应用 Deployment  
@@ -218,7 +221,7 @@ kubectl apply -f service.yaml
 kubectl apply -f ingress.yaml
 ```
 
-部署完成后，您可以检查状态：
+部署完成后，检查状态：
 
 ```bash
 # 查看 Pods 是否正在运行  
@@ -231,14 +234,15 @@ kubectl get service
 kubectl get ingress
 ```
 
-最后，您需要配置您的 DNS 或本地 hosts 文件，将 my-go-app.example.com 指向您的 Ingress Controller 的 IP 地址。完成后，通过访问 http://my-go-app.example.com，您的请求将被 Ingress Controller 接收，然后转发到 go-app-service，并最终到达我们部署的 Go 应用 Pods 中的一个。
+最后，需要配置 DNS 或本地 hosts 文件，将 my-go-app.example.com 指向 Ingress Controller 的 IP 地址。完成后，通过访问 http://my-go-app.example.com，请求将被 Ingress Controller 接收，然后转发到 go-app-service，并最终到达我们部署的 Go 应用 Pods 中的一个。
+
+
+!['1.png'](1.png '1.png')
 
 ### **总结**
 
-恭喜您！您已经成功地完成了一个完整的云原生应用部署流程。我们回顾一下：
+我们回顾一下：
 
 1. 用 Go 构建了一个简单的 Web 服务。  
-2. 使用 Docker 和多阶段构建技术将其容器化，并**推送到了一个本地镜像仓库**。  
+2. 使用 Docker 和**多阶段构建技术**将其容器化，并推送到了一个**本地镜像仓库**。
 3. 通过 Kubernetes 的 Deployment、Service 和 Ingress 资源，将应用部署为一个高可用的、可从外部访问的服务。
-
-这个流程是现代软件开发和运维的核心实践，掌握它将为您的云原生之旅打下坚实的基础。
