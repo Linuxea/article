@@ -1,6 +1,6 @@
 # **从 Go 服务到 K8s 部署：云原生实践指南**
 
-在现代云原生应用开发中，Go 语言因其高性能、简洁的语法和强大的并发能力而备受青睐。而 Docker 和 Kubernetes (K8s) 则分别是容器化和容器编排领域的标准。本文将完成一个完整的流程：编写一个基础的 Go Web 服务，使用 Docker 将其容器化，并最终将其部署到 Kubernetes 集群中。
+在现代云原生应用开发中，Go 语言因其高性能、简洁的语法和强大的并发能力而备受青睐。而 Docker 和 Kubernetes (K8s) 则分别是容器化和容器编排领域的代表。本文将完成一个完整的流程：编写一个基础的 Go Web 服务，使用 Docker 将其容器化，并最终将其部署到 Kubernetes 集群中。
 
 ### **第一步：构建基础 Go Web 服务**
 
@@ -101,11 +101,14 @@ CMD ["./app"]
 **构建、推送和运行 Docker 镜像**
 
 1. **构建镜像**: 在包含 Dockerfile 和 main.go 的目录中，运行以下命令。我们将镜像命名为 go-k8s-app。  
-   <code>docker build \-t go-k8s-app .</code>
+   ```bash
+   docker build -t go-k8s-app .
+   ```
 
 2. **启动本地镜像仓库**: 为了让 Kubernetes 能够拉取到我们构建的镜像，我们需要一个镜像仓库。出于演示目的，我们可以在本地启动一个 Docker Registry 容器。  
-   <code>docker run -d -p 5000:5000 --restart=always --name registry registry:2</code>
-
+   ```bash
+   docker run -d -p 5000:5000 --restart=always --name registry registry:2
+   ```
    这个命令会在后台启动一个名为 registry 的容器，并将容器的 5000 端口映射到主机的 5000 端口。  
 3. **标记并推送到本地仓库**: 构建好的镜像需要被正确地标记（tag），以便推送到我们的本地仓库。  
     ```
@@ -119,7 +122,9 @@ CMD ["./app"]
     ```
 
 4. **本地运行容器 (验证)**: 在推送到仓库后，我们仍然可以像之前一样在本地运行容器进行验证。  
-   `docker run -p 8080:8080 localhost:5000/go-k8s-app`
+   ```bash
+   docker run -p 8080:8080 localhost:5000/go-k8s-app
+   ```
 
    注意此时我们使用了带有仓库地址的完整镜像名。再次访问 http://localhost:8080 能看到一样的结果。
 
