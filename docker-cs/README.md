@@ -42,6 +42,8 @@ Unix socket 是 Linux 提供的一种进程间通信（IPC）机制，专门用�
 
 当执行 `docker ps` 查看容器列表时，实际的通信流程是这样的：docker 客户端程序启动后，首先读取配置文件或环境变量，确定 daemon 的位置。在默认配置下，它会尝试连接 `/var/run/docker.sock` 这个文件。客户端通过这个 socket 文件向 daemon 发送一个 HTTP GET 请求，请求路径类似于 `/containers/json`。daemon 接收到请求后，查询当前运行的容器信息，将结果以 JSON 格式通过同一个 socket 返回给客户端。客户端收到 JSON 数据后，将其解析并格式化成我们在终端看到的表格形式。
 
+![Docker Unix Socket 通信流程](ok.png)
+
 这个过程虽然客户端和服务器都在同一台机器上，但`其通信机制`和远程连接完全一致，都是通过标准的 HTTP 协议进行。Docker API 本身就是 RESTful 风格的 HTTP API，无论底层使用什么传输方式，API 的格式都是一样的。
 
 ## 3. TCP 连接：让 Docker 走向网络
