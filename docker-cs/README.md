@@ -80,6 +80,8 @@ Docker daemon 可以配置为监听 TCP 端口。传统的做法是在 daemon �
 
 那么 SSH 方式是如何实现远程访问的呢？它的过程是这样的：当配置 Docker 客户端使用 SSH 连接时，客户端会先通过 SSH 协议连接到远程主机，建立一个加密的 SSH 隧道。然后，客户端通过这个隧道访问远程主机上的本地 Unix socket，也就是 `/var/run/docker.sock`。从 daemon 的角度看，它接收到的仍然是来自本地 Unix socket 的请求，完全感觉不到这个请求实际上来自远程机器。
 
+![Docker Unix Socket 通信流程](ok2.png)
+
 从架构层面看，SSH 方式实际上是在 Docker 的 CS 架构之外又套了一层 SSH 的 CS 架构。SSH 客户端和 SSH 服务器之间形成了第一层的 CS 通信，而在这个通信通道内部，Docker 客户端再通过 Unix socket 与 Docker daemon 进行第二层的 CS 通信。
 
 SSH 方式的另一个优势是它不需要暴露任何额外的网络端口。如果你的服务器已经开放了 SSH 端口用于远程管理（这在几乎所有 Linux 服务器上都是标配），那么你可以直接利用这个端口来进行 Docker 远程操作，不需要再开放 2375 或 2376 这些 Docker 专用端口。这不仅减少了攻击面，也简化了防火墙配置。
